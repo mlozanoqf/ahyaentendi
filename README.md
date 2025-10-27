@@ -1,8 +1,5 @@
-# ahyaentendi
-Documentos de "Ah, ya entendí."
+# Contenido de "Ah, ya entendí."
 
+1. Rendimientos accionarios en R. `1_rend
 
-# Contenido.
-
-1. Rendimientos accionarios en R. \texttt{1_rend}
-1. asdasd
+https://www.youtube.com/@drmartinlozano
