@@ -1,0 +1,314 @@
+---
+title: "\\textbf{Rendimiento aritmético y geométrico.}"
+subtitle: "La media que anticipa el futuro y la que explica el pasado."
+author: "Dr. Martín Lozano \\texttt{https://mlozanoqf.github.io/}"
+date: "`r gsub('a\\. m\\.', 'a.m.', gsub('p\\. m\\.', 'p.m.', format(Sys.time(), '%d de %B de %Y, %I:%M %p')))`"
+output:
+  pdf_document:
+    latex_engine: xelatex
+    number_sections: true
+    highlight: tango
+header-includes:
+  - \usepackage{xcolor}
+  - \usepackage{fvextra}
+  - |
+      \DefineVerbatimEnvironment{Highlighting}{Verbatim}{
+        breaklines,
+        commandchars=\\\{\},
+        numbers=left,
+        numbersep=8pt,
+        fontsize=\small,
+        firstnumber=1,
+        xleftmargin=1.5em,
+        frame=none
+      }
+      % ← Estilo de los números de línea (más visibles)
+      \renewcommand{\theFancyVerbLine}{\textcolor{black}{\bfseries\small\arabic{FancyVerbLine}}}
+  - \usepackage{amssymb}
+  - \usepackage{amsmath}
+---
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+library(knitr)
+
+tabla <- matrix(
+  c("$\\checkmark$", "$\\times$", "$\\times$",
+    "$\\checkmark$", "$\\times$", "$\\times$",
+    "$\\times$", "$\\times$", "$\\times$"),
+  nrow = 3, byrow = TRUE
+)
+colnames(tabla) <- c("Fundamental", "Intermedio", "Especializado")
+rownames(tabla) <- c("Finanzas", "Estadística", "R")
+
+kable(tabla, escape = FALSE, align = c("c","c","c"))
+
+```
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  class.source = "numberLines",   # activa numeración en todos los chunks con echo=TRUE
+  Sys.setlocale("LC_TIME", "es_ES.UTF-8")
+)
+```
+
+\newpage
+\Large 
+
+# Introducción.
+
+\begin{itemize}
+  \item El análisis del rendimiento financiero puede realizarse a partir de distintas medidas; entre las más utilizadas se encuentran la aritmética y la geométrica.
+  \item Comprender sus diferencias evita errores comunes al interpretar la rentabilidad y el riesgo de una inversión.
+  \item Este documento compara ambas medidas y muestra cómo estimar un rendimiento esperado y su incertidumbre asociada.
+  \end{itemize}
+
+
+
+\newpage
+<!-- \normalsize -->
+
+# Ejemplo.
+
+| Año | Rendimiento histórico $r_i$ | Capital acumulado real |
+|:---:|:------------------:|:------------------------:|
+| –5 | +15 % | $\$100 \times (1.15) = \$115.00$ |
+| –4 | +20 % | $\$115 \times (1.20) = \$138.00$ |
+| –3 | +30 % | $\$138 \times (1.30) = \$179.40$ |
+| –2 | –20 % | $\$179.4 \times (0.8) = \$143.52$ |
+| –1 | +25 % | $\$143.52 \times (1.25) = \$179.40$ |
+
+\begin{flushleft}
+\begin{minipage}{0.7\textwidth}
+Rendimientos de un fondo de inversión: $15\%, 20\%, 30\%, -20\%$ y $25\%$. Evolución de una inversión inicial de $\$100$.
+\end{minipage}
+\end{flushleft}
+
+\newpage
+
+
+# Rendimiento aritmético.
+
+| Año | $r_i$ | CA | CA $(\bar{r}_A =14\%)$ |
+|:---:|:--------------------------:|:-------------------------:|:------------------------------------:|
+| –5 | +15 % | $\$115.00$ | $\$114.00$ |
+| –4 | +20 % | $\$138.00$ | $\$129.96$ |
+| –3 | +30 % | $\$179.40$ | $\$148.15$ |
+| –2 | –20 % | $\$143.52$ | $\$168.89$ |
+| –1 | +25 % | $\$179.40$ | $\$192.53$ |
+
+$\bar{r}_A = \frac{1}{n}{\displaystyle\sum_{i=1}^{n}} r_i$
+
+$\bar{r}_A = \frac{0.15 + 0.20 + 0.30 - 0.20 + 0.25}{5} = 14\%$
+
+
+\newpage
+
+# Rendimiento geométrico.
+
+| Año | $r_i$ | CA | CA $(\bar{r}_A =14\%)$ | CA ($\bar{r}_G = 12.4\%$) |
+|:---:|:--------------------------:|:-------------------------:|:---------------------------:|:-----------------------------:|
+| –5 | +15 % | $\$115.00$ | $\$114.00$ | $\$112.40$ |
+| –4 | +20 % | $\$138.00$ | $\$129.96$ | $\$126.41$ |
+| –3 | +30 % | $\$179.40$ | $\$148.15$ | $\$142.54$ |
+| –2 | –20 % | $\$143.52$ | $\$168.89$ | $\$160.72$ |
+| –1 | +25 % | $\$179.40$ | $\$192.53$ | $\$179.40$ |
+
+$\bar{r}_G = \left(\prod_{i=1}^{n}(1 + r_i)\right)^{1/n} - 1$
+
+$\bar{r}_G = [(1.15)(1.20)(1.30)(0.80)(1.25)]^{1/5} - 1$
+
+$\bar{r}_G = (1.794)^{1/5} - 1 = 12.4\%$
+
+
+\newpage  
+
+# Proyección al año 0.
+
+| Año | Rendimiento histórico $r_i$ | Capital acumulado real |
+|:---:|:------------------:|:------------------------:|
+| –5 | +15 % | $\$115.00$ |
+| $\cdots$ | $\cdots$ | $\cdots$ |
+| –1 | +25 % | $\$179.40$ |
+| 0 (hoy) | No lo sabemos | - |
+
+\begin{flushleft}
+\begin{minipage}{0.7\textwidth}
+El rendimiento aritmético sirve como estimador del rendimiento esperado para el siguiente periodo.
+\end{minipage}
+\end{flushleft}
+
+\newpage 
+
+# Cálculo del capital esperado y su riesgo.
+
+Capital real al final del año –1 es $\$179.4$.
+
+$\text{Capital esperado al año 0} = \$179.4 \times (1 + 0.14) = \$204.5$
+
+Desviación estándar muestral:
+
+$s = \sqrt{\frac{\sum_{i=1}^{n}(r_i - \bar{r}_A)^2}{n - 1}} \rightarrow s = \sqrt{\frac{(0.15 - 0.14)^2 + (0.20 - 0.14)^2 + (0.30 - 0.14)^2 + (-0.20 - 0.14)^2 + (0.25 - 0.14)^2}{5 - 1}}$
+
+$s= \sqrt{\frac{0.0001 + 0.0036 + 0.0256 + 0.1156 + 0.0121}{4}}$
+
+$s= \sqrt{0.03925} = 0.1981$
+
+$s = 19.8\%$
+
+\newpage 
+
+# Rango de variación esperada de los rendimientos.
+
+Precaución: La muestra es pequeña.
+
+$\bar{r}_A \pm 1.96 s \rightarrow 14\% \pm 1.96(19.8\%) = 14\% \pm 38.8\%$
+
+Los rendimientos posibles se ubican entre: $[-24.8\%, \, 52.8\%]$.
+
+
+\vspace{-20pt}
+
+```{r fig.width=2.6, fig.height=1.95, echo=FALSE, fig.align='left', fig.pos='H'}
+par(mar=c(3,0,1,0))
+# Parámetros
+media <- 0.14        # rendimiento medio (14%)
+sd <- 0.198          # desviación estándar (19.8%)
+x <- seq(-0.5, 0.8, length=500)
+y <- dnorm(x, mean = media, sd = sd)
+
+# Límites del 95%
+lim_inf <- media - 1.96 * sd   # -0.248
+lim_sup <- media + 1.96 * sd   # 0.528
+
+# Gráfico base
+plot(x, y, type="l", lwd=2, col="black",
+     #main="Distribución normal del rendimiento esperado (95%)",
+     xlab = NA, ylab = NA,
+     xaxt="n", yaxt="n")
+
+# Área sombreada del 95%
+polygon(c(x[x >= lim_inf & x <= lim_sup], lim_sup, lim_inf),
+        c(y[x >= lim_inf & x <= lim_sup], 0, 0),
+        col=rgb(0.2, 0.4, 0.8, 0.3), border=NA)
+
+# Líneas verticales
+abline(v = c(lim_inf, media, lim_sup),
+       col = c("red", "darkgreen", "red"), lty = c(2, 1, 2), lwd = 1.5)
+
+# Eje X con tres valores
+axis(1, at = c(lim_inf, media, lim_sup),
+     labels = c("-24.8%", "14%", "+52.8%"), las = 1)
+```
+
+
+\newpage 
+
+# Rango estimado.
+
+El rango del capital proyectado al año 0 sería:
+
+$\text{Límite inferior: } \$179.4 \times (1 - 0.248) = \$134.8$.
+
+$\text{Límite superior: } \$179.4 \times (1 + 0.528) = \$273.6$.
+
+Con un $95\%$ de confianza, el valor esperado de $\$204.5$ se ubica entre $\$134.8$ y $\$273.6$, reflejando la incertidumbre asociada a los rendimientos.
+
+
+\newpage
+# Relación entre $\bar{r}_G$ y $\bar{r}_A$.
+
+$\bar{r}_G \approx   \bar{r}_A - \frac{1}{2}s^2 \rightarrow 0.124 \approx 0.14 - \frac{1}{2}0.03925$
+
+$0.124 \approx 0.14 - 0.019625$
+
+$0.124 \approx 0.120375$
+
+$12.4\% \approx 12.04\%$
+
+
+\newpage
+
+# Demostración general de que la media geométrica es menor o igual que la media aritmética.
+
+Sea un conjunto de $n$ números reales **positivos** $x_1, x_2, \dots, x_n$.
+
+Definimos:
+
+- **Media aritmética (AM):**  
+  $A = \dfrac{x_1 + x_2 + \dots + x_n}{n}$
+
+- **Media geométrica (GM):**  
+  $G = \sqrt[n]{x_1 \, x_2 \, \dots \, x_n}$
+
+La desigualdad que queremos demostrar es:
+
+$$
+A \ge G
+$$
+
+con igualdad **solo si** todos los $x_i$ son iguales.
+
+
+**Demostración para $n=2$**
+
+Sean $x_1 = a$ y $x_2 = b$, ambos positivos.
+
+Queremos mostrar que:
+
+$\dfrac{a + b}{2} \ge \sqrt{ab}$
+
+Elevamos ambos lados al cuadrado (manteniendo la desigualdad, ya que los números son positivos):
+
+$\left(\dfrac{a + b}{2}\right)^2 \ge ab$
+
+$\dfrac{a^2 + 2ab + b^2}{4} \ge ab$
+
+$a^2 - 2ab + b^2 \ge 0$
+
+$(a - b)^2 \ge 0$
+
+Esta última expresión **siempre es verdadera**, y la igualdad solo se cumple si $a = b$.
+
+
+**Caso general ($n > 2$)**
+
+Para más números, la demostración se puede extender por **inducción** o usando el **logaritmo y la convexidad**:
+
+1. Tomamos logaritmos naturales:
+   $\ln(G) = \dfrac{1}{n} \sum_{i=1}^{n} \ln(x_i)$
+2. La función $\ln(x)$ es **cóncava**, por lo que según la **desigualdad de Jensen**:
+   $\ln\!\left(\dfrac{1}{n}\sum_{i=1}^{n} x_i\right) \ge \dfrac{1}{n}\sum_{i=1}^{n} \ln(x_i)$
+3. Aplicando la exponencial a ambos lados:
+   $\dfrac{1}{n}\sum_{i=1}^{n} x_i \ge \sqrt[n]{x_1 x_2 \dots x_n}$
+
+
+Conclusión:
+
+$\text{Media aritmética} \ge \text{Media geométrica}$
+
+con igualdad solo si todos los valores son iguales.
+
+
+
+
+
+\newpage
+# Conclusión.
+
+\Large 
+
+\begin{itemize}
+  \item La media geométrica resume el comportamiento histórico del capital.
+  \item La media aritmética proyecta el rendimiento esperado futuro.
+  \item Ambas ofrecen una visión complementaria: la geométrica evalúa el pasado con precisión, y la aritmética anticipa el futuro con incertidumbre.
+  \end{itemize}
+
+
+
+\newpage
+\normalsize
+
