@@ -1,0 +1,197 @@
+---
+title: "\\textbf{Estimación muestral de la volatilidad no condicional.}"
+subtitle: "Ejemplo aplicado al S&P500."
+author: "Dr. Martín Lozano \\texttt{https://mlozanoqf.github.io/}"
+date: "`r gsub('a\\. m\\.', 'a.m.', gsub('p\\. m\\.', 'p.m.', format(Sys.time(), '%d de %B de %Y, %I:%M %p')))`"
+output:
+  pdf_document:
+    latex_engine: xelatex
+    number_sections: true
+    highlight: tango
+header-includes:
+  - \usepackage{xcolor}
+  - \usepackage{fvextra}
+  - |
+      \DefineVerbatimEnvironment{Highlighting}{Verbatim}{
+        breaklines,
+        commandchars=\\\{\},
+        numbers=left,
+        numbersep=8pt,
+        fontsize=\small,
+        firstnumber=1,
+        xleftmargin=1.5em,
+        frame=none
+      }
+      % ← Estilo de los números de línea (más visibles)
+      \renewcommand{\theFancyVerbLine}{\textcolor{black}{\bfseries\small\arabic{FancyVerbLine}}}
+  - \usepackage{amssymb}
+  - \usepackage{amsmath}
+---
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+library(knitr)
+
+tabla <- matrix(
+  c("$\\times$", "$\\checkmark$", "$\\times$",
+    "$\\checkmark$", "$\\times$", "$\\times$",
+    "$\\checkmark$", "$\\times$", "$\\times$"),
+  nrow = 3, byrow = TRUE
+)
+colnames(tabla) <- c("Fundamental", "Intermedio", "Especializado")
+rownames(tabla) <- c("Finanzas", "Estadística", "R")
+
+kable(tabla, escape = FALSE, align = c("c","c","c"))
+
+```
+
+
+
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  class.source = "numberLines",   # activa numeración en todos los chunks con echo=TRUE
+  Sys.setlocale("LC_TIME", "es_ES.UTF-8")
+)
+```
+
+\newpage
+\Large 
+
+# Introducción.
+
+\begin{itemize}
+  \item Metodología para estimar la volatilidad no condicional de los rendimientos del índice S\&P 500, utilizando datos históricos de precios diarios.
+  \item Calcular los rendimientos diarios, tanto como cambios porcentuales como en logaritmos naturales.
+  \item Aplicar la fórmula muestral de la volatilidad, estableciendo una base metodológica para futuros modelos financieros.
+  \end{itemize}
+
+\newpage
+
+# Paquetes.
+
+```{r}
+library(tidyquant)
+library(dplyr)
+library(knitr)
+library(tidyr)
+library(ggplot2)
+```
+\newpage
+
+# Descarga de datos.
+
+```{r}
+S <- tq_get("^GSPC", from = "2015-07-10", to   = "2020-07-10") |>
+  dplyr::select(date, S = close)
+
+kable(rbind(head(S, 6), tail(S, 2)), digits = 10, format.args = list(scientific = FALSE))
+```
+\newpage
+
+
+# Visualización del índice.
+
+```{r}
+  ggplot(S, aes(x = date, y = S)) +
+    geom_line(color = "blue") +
+    labs(title = "Índice S&P 500.", x = "Fecha", y = "Valor") +
+    scale_x_date(date_breaks = "1 year", date_labels = "%Y") +
+    theme_minimal(base_size = 13) +
+    theme(plot.title = element_text(face = "bold", hjust = 0.5),
+          axis.text.x = element_text(angle = 0, hjust = 0.5))
+```
+\newpage
+
+# Rendimientos logarítmicos (l) y en cambios porcentuales (c).
+
+$u_{l,i} = \ln\left(\frac{S_i}{S_{i-1}}\right) \rightarrow u_{l,2} = \ln\left(\frac{2099.60}{2076.62}\right) \rightarrow \ln(1.011066) \rightarrow u_{l,2} = 0.0110052685$.
+
+$u_{c,i} = \frac{S_i - S_{i-1}}{S_{i-1}} \rightarrow u_{c,2} = \frac{S_i}{S_{i-1}}-1, u_{c,2} = \frac{2099.60}{2076.62}-1 \rightarrow u_{c,2} = 0.0110660492$.
+
+```{r}
+S <- S |> mutate(i = dplyr::row_number(), u_l = log(S / lag(S)), u_c = (S / lag(S)) - 1)
+
+kable(rbind(head(S, 6), tail(S, 2)), digits = 10, format.args = list(scientific = FALSE))
+```
+
+\newpage
+
+# Visualización de los rendimientos.
+
+```{r}
+rtns_long <- S |>
+    dplyr::select(date, u_l, u_c) |>
+    tidyr::pivot_longer(c(u_l, u_c), names_to = "serie", values_to = "retorno") |>
+    dplyr::mutate(signo = retorno >= 0)
+
+  ylim <- range(rtns_long$retorno, na.rm = TRUE)
+
+  ggplot(rtns_long, aes(x = date, y = retorno, fill = signo)) +
+    geom_col(show.legend = FALSE) +
+    scale_fill_manual(values = c(`TRUE` = "blue", `FALSE` = "red")) +
+    scale_x_date(date_breaks = "1 year", date_labels = "%Y") +
+    scale_y_continuous(limits = ylim) +
+    facet_grid(rows = vars(serie), switch = "y") +
+    labs(title = "Rendimientos diarios del S&P 500.",
+         subtitle = "Arriba: logarítmicos; abajo: cambios porcentuales.",
+      x = "Fecha", y = NULL) +
+    theme_minimal(base_size = 12) +
+    theme(strip.text.y.left = element_blank(),
+          panel.spacing = unit(1, "lines"),
+          axis.ticks.x = element_blank())
+```
+
+\newpage
+
+# Volatilidad constante.
+
+$s = \frac{1}{n - 1} \sum_{i=1}^{n} (u_i - \bar{u})^2$. Diferencias al cuadrado: $(u_i - \bar{u})^2$. 
+
+El primer valor válido de $i$ es 2. 
+
+```{r}
+ul_mean <- mean(S$u_l, na.rm = TRUE)
+uc_mean <- mean(S$u_c, na.rm = TRUE)
+S <- S |> 
+  mutate(ul_dev2 = (u_l - ul_mean)^2, uc_dev2 = (u_c - uc_mean)^2) |>
+  select(date, ul_dev2, uc_dev2)
+
+kable(rbind(head(S, 6), tail(S, 2)), digits = 10, format.args = list(scientific = FALSE))
+```
+
+
+\newpage
+
+# Estimación muestral de la volatilidad no condicional.
+
+$s = \frac{1}{n - 1} \sum_{i=1}^{n} (u_i - \bar{u})^2$.
+
+
+```{r}
+n_valid <- sum(!is.na(S$ul_dev2))
+
+metrics <- tibble::tibble(series = c("log returns (l)", "pct change (c)"),
+                          daily_var = c(sum(S$ul_dev2, na.rm = TRUE) / (n_valid - 1),
+                                        sum(S$uc_dev2, na.rm = TRUE) / (n_valid - 1))) |>
+  mutate(daily_vol = sqrt(daily_var), annual_vol = daily_vol * sqrt(252))
+
+knitr::kable(metrics, digits = c(0, 10, 6, 6), format.args = list(scientific = FALSE),
+             col.names = c("Series", "Daily variance", 
+                           "Daily volatility", "Annual volatility"))
+```
+
+\newpage
+
+# Conclusión.
+
+\Large 
+
+\begin{itemize}
+  \item Los rendimientos logarítmicos y porcentuales generan resultados prácticamente equivalentes.
+  \item El enfoque no condicional, asume una volatilidad constante en el tiempo y, por tanto, no captura la naturaleza dinámica y heterocedástica observada en los mercados financieros reales.
+  \end{itemize}
+
