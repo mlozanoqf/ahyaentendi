@@ -64,9 +64,9 @@ knitr::opts_chunk$set(
 # Introducción.
 
 \begin{itemize}
-  \item Metodología para estimar la volatilidad no condicional de los rendimientos del índice S\&P 500, utilizando datos históricos de precios diarios.
-  \item Calcular los rendimientos diarios, tanto como cambios porcentuales como en logaritmos naturales.
-  \item Aplicar la fórmula muestral de la volatilidad, estableciendo una base metodológica para futuros modelos financieros.
+  \item Estimar la volatilidad no condicional de los rendimientos del índice S\&P 500, utilizando datos históricos de precios diarios.
+  \item Rendimientos como cambios porcentuales y logaritmos naturales.
+  \item Base para futuros modelos financieros: Black–Scholes, Markowitz, VaR, Monte Carlo, Random Walk, Geometric Brownian Motion, Vasicek, riesgo de crédito de Merton, CAPM, APT.
   \end{itemize}
 
 \newpage
@@ -85,7 +85,7 @@ library(ggplot2)
 # Descarga de datos.
 
 ```{r}
-S <- tq_get("^GSPC", from = "2015-07-10", to   = "2020-07-10") |>
+S <- tq_get("^GSPC", from = "2015-07-10", to = "2020-07-10") |>
   dplyr::select(date, S = close)
 
 kable(rbind(head(S, 6), tail(S, 2)), digits = 10, format.args = list(scientific = FALSE))
@@ -108,12 +108,19 @@ kable(rbind(head(S, 6), tail(S, 2)), digits = 10, format.args = list(scientific 
 
 # Rendimientos logarítmicos (l) y en cambios porcentuales (c).
 
-$u_{l,i} = \ln\left(\frac{S_i}{S_{i-1}}\right) \rightarrow u_{l,2} = \ln\left(\frac{2099.60}{2076.62}\right) \rightarrow \ln(1.011066) \rightarrow u_{l,2} = 0.0110052685$.
+$u_{l,i} = \ln\left(\frac{S_i}{S_{i-1}}\right) \rightarrow u_{l,2} = \ln\left(\frac{2099.60}{2076.62}\right)$
 
-$u_{c,i} = \frac{S_i - S_{i-1}}{S_{i-1}} \rightarrow u_{c,2} = \frac{S_i}{S_{i-1}}-1, u_{c,2} = \frac{2099.60}{2076.62}-1 \rightarrow u_{c,2} = 0.0110660492$.
+$\rightarrow \ln(1.011066) \rightarrow u_{l,2} = 0.0110052685$.
+
+$u_{c,i} = \frac{S_i - S_{i-1}}{S_{i-1}} \rightarrow u_{c,2} = \frac{S_i}{S_{i-1}}-1$
+
+$\rightarrow u_{c,2} = \frac{2099.60}{2076.62}-1 \rightarrow u_{c,2} = 0.0110660492$.
 
 ```{r}
-S <- S |> mutate(i = dplyr::row_number(), u_l = log(S / lag(S)), u_c = (S / lag(S)) - 1)
+S <- S |> 
+  mutate(i = dplyr::row_number(), 
+         u_l = log(S / lag(S)), 
+         u_c = (S / lag(S)) - 1)
 
 kable(rbind(head(S, 6), tail(S, 2)), digits = 10, format.args = list(scientific = FALSE))
 ```
@@ -138,7 +145,7 @@ rtns_long <- S |>
     facet_grid(rows = vars(serie), switch = "y") +
     labs(title = "Rendimientos diarios del S&P 500.",
          subtitle = "Arriba: logarítmicos; abajo: cambios porcentuales.",
-      x = "Fecha", y = NULL) +
+         x = "Fecha", y = NULL) +
     theme_minimal(base_size = 12) +
     theme(strip.text.y.left = element_blank(),
           panel.spacing = unit(1, "lines"),
@@ -151,14 +158,15 @@ rtns_long <- S |>
 
 $s = \frac{1}{n - 1} \sum_{i=1}^{n} (u_i - \bar{u})^2$. Diferencias al cuadrado: $(u_i - \bar{u})^2$. 
 
-El primer valor válido de $i$ es 2. 
+El primer valor válido de $i$ es 2 porque al calcular los rendimientos perdemos una observación.
 
 ```{r}
 ul_mean <- mean(S$u_l, na.rm = TRUE)
 uc_mean <- mean(S$u_c, na.rm = TRUE)
 S <- S |> 
-  mutate(ul_dev2 = (u_l - ul_mean)^2, uc_dev2 = (u_c - uc_mean)^2) |>
-  select(date, ul_dev2, uc_dev2)
+  mutate(ul_dev2 = (u_l - ul_mean)^2, 
+         uc_dev2 = (u_c - uc_mean)^2) |>
+  select(date, i, ul_dev2, uc_dev2)
 
 kable(rbind(head(S, 6), tail(S, 2)), digits = 10, format.args = list(scientific = FALSE))
 ```
@@ -192,6 +200,6 @@ knitr::kable(metrics, digits = c(0, 10, 6, 6), format.args = list(scientific = F
 
 \begin{itemize}
   \item Los rendimientos logarítmicos y porcentuales generan resultados prácticamente equivalentes.
-  \item El enfoque no condicional, asume una volatilidad constante en el tiempo y, por tanto, no captura la naturaleza dinámica y heterocedástica observada en los mercados financieros reales.
+  \item El enfoque no condicional, asume una volatilidad constante en el tiempo y, por tanto, no captura la naturaleza dinámica y heterocedástica observada en los mercados financieros.
   \end{itemize}
 

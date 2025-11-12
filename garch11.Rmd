@@ -85,12 +85,15 @@ library(scales)
 
 # Rendimientos.
 
-$u_i = \frac{S_i - S_{i-1}}{S_{i-1}} \rightarrow u_i = \frac{S_i}{S_{i-1}}-1, u_2 = \frac{2099.60}{2076.62}-1 \rightarrow u_2 = 0.0110660492$.
+$u_i = \frac{S_i - S_{i-1}}{S_{i-1}} \rightarrow u_i = \frac{S_i}{S_{i-1}}-1$.
+
+$\rightarrow u_2 = \frac{2099.60}{2076.62}-1 \rightarrow u_2 = 0.0110660492$.
 
 ```{r}
 S <- tq_get("^GSPC", from = "2015-07-10", to = "2020-07-10") |> 
   dplyr::select(date, S = close) |> 
-  mutate(i = dplyr::row_number(), u_i = (S / lag(S)) - 1)
+  mutate(i = dplyr::row_number(), 
+         u_i = (S / lag(S)) - 1)
 
 kable(rbind(head(S, 6), tail(S, 2)), digits = 10, format.args = list(scientific = FALSE))
 ```
@@ -105,13 +108,13 @@ kable(rbind(head(S, 6), tail(S, 2)), digits = 10, format.args = list(scientific 
 
 # Inicialización.
 
-$\sigma^2_n=\omega+\alpha u^2_{n-1}+\beta \sigma^2_{n-1}$.
+GARCH(1,1): $\sigma^2_n=\omega+\alpha u^2_{n-1}+\beta \sigma^2_{n-1}$.
 
 $v_i=\sigma^2_i$.
 
 ```{r}
 garch_variance_shifted <- function(u, omega, alpha, beta) {
-  n <- length(u)
+  n <- length(u) # 1258
   v <- rep(NA_real_, n) # inicializa el vector de varianzas condicionales v.
   if (n >= 2) v[2] <- u[1]^2 # valor inicial de v.
   if (n >= 3) { # a partir de aquí se usa la ecuación de GARCH(1,1).
@@ -120,7 +123,14 @@ garch_variance_shifted <- function(u, omega, alpha, beta) {
     }
   }
   v
-  }
+}
+
+S <- S |> 
+  mutate(v_i = case_when(i <= 2 ~ NA_character_,
+                         i == 3 ~ "u_i^2",
+                         i >= 4 ~ "GARCH(1,1)"))
+
+kable(rbind(head(S, 6), tail(S, 2)), digits = 10, format.args = list(scientific = FALSE))
 ```
 
 
@@ -128,7 +138,9 @@ garch_variance_shifted <- function(u, omega, alpha, beta) {
 
 # Estimación Full MLE.
 
-$\sigma^2_n=\omega+\alpha u^2_{n-1}+\beta \sigma^2_{n-1}$, $v_i=\sigma^2_i$, log-verosimilitud condicional: $\sum^{m}_{i=1} \left[ -ln(v_i)-\frac{u^2_i}{v_i}\right]$.
+GARCH(1,1): $\sigma^2_n=\omega+\alpha u^2_{n-1}+\beta \sigma^2_{n-1}$, $v_i=\sigma^2_i$.
+
+Función de log-verosimilitud condicional: $\sum^{m}_{i=1} \left[ -ln(v_i)-\frac{u^2_i}{v_i}\right]$.
 
 ```{r}
 u <- S$u_i |> stats::na.omit()
@@ -165,8 +177,21 @@ BIC <- -2 * ll_tot + log(n_obs) * k
 summary_tbl <- 
   tibble::tibble(metric = c("omega", "alpha", "beta", "logLik", "n_obs", "AIC", "BIC"), 
                  value  = c(theta_hat, ll_tot, n_obs, AIC, BIC))
+```
 
-knitr::kable(summary_tbl, align = c("l", "r"), digits = c(0, 6), format.args = list(scientific = FALSE), col.names = c("Estimador / métrica", "Valor"))
+\newpage
+
+# Estimación Full MLE - Resultados.
+
+GARCH(1,1): $\sigma^2_n=\omega+\alpha u^2_{n-1}+\beta \sigma^2_{n-1}$, $v_i=\sigma^2_i$.
+
+La función de log-verosimilitud condicional Gaussiana: $\sum^{m}_{i=1} \left[ -ln(v_i)-\frac{u^2_i}{v_i}\right]$.
+
+
+```{r}
+knitr::kable(summary_tbl, align = c("l", "r"), digits = c(0, 6), 
+             format.args = list(scientific = FALSE), 
+             col.names = c("Estimador / métrica", "Valor"))
 ```
 
 
@@ -174,8 +199,11 @@ knitr::kable(summary_tbl, align = c("l", "r"), digits = c(0, 6), format.args = l
 
 # Estimación *variance targeting*.
 
-$\sigma^2_n=\omega+\alpha u^2_{n-1}+\beta \sigma^2_{n-1}$, 
-$\omega = V_L(1-\alpha-\beta)$, $v_i=\sigma^2_i$.
+GARCH(1,1): $\sigma^2_n=\omega+\alpha u^2_{n-1}+\beta \sigma^2_{n-1}$.
+
+$\omega = V_L(1-\alpha-\beta)$. 
+
+$v_i=\sigma^2_i$.
 
 La función de log-verosimilitud condicional Gaussiana: $\sum^{m}_{i=1} \left[ -ln(v_i)-\frac{u^2_i}{v_i}\right]$.
 
@@ -211,9 +239,50 @@ AIC_vt <- -2 * ll_vt + 2 * k_vt
 BIC_vt <- -2 * ll_vt + log(n_obs_vt) * k_vt
 
 summary_vt <- tibble::tibble(
-  metric = c("omega (target)", "alpha", "beta", "logLik", "n_obs", "AIC", "BIC"), value  = c(omega_vt, alpha_vt, beta_vt, ll_vt, n_obs_vt, AIC_vt, BIC_vt))
+  metric = c("omega (target)", "alpha", "beta", "logLik", "n_obs", "AIC", "BIC"), 
+  value  = c(omega_vt, alpha_vt, beta_vt, ll_vt, n_obs_vt, AIC_vt, BIC_vt))
+```
 
-knitr::kable(summary_vt, align = c("l", "r"), digits = c(0, 6), format.args = list(scientific = FALSE), col.names = c("Estimador / métrica", "Valor"))
+\newpage
+
+# Estimación *variance targeting* - Resultados.
+
+GARCH(1,1): $\sigma^2_n=\omega+\alpha u^2_{n-1}+\beta \sigma^2_{n-1}$.
+
+$\omega = V_L(1-\alpha-\beta)$. 
+
+$v_i=\sigma^2_i$.
+
+La función de log-verosimilitud condicional Gaussiana: $\sum^{m}_{i=1} \left[ -ln(v_i)-\frac{u^2_i}{v_i}\right]$.
+
+
+```{r}
+knitr::kable(summary_vt, align = c("l", "r"), digits = c(0, 6), 
+             format.args = list(scientific = FALSE), 
+             col.names = c("Estimador / métrica", "Valor"))
+```
+
+\newpage
+
+# Visualización de la minimización *variance targeting*.
+
+```{r}
+alphas <- seq(0.22, 0.3, length.out = 100)
+betas  <- seq(0.66, 0.76, length.out = 100)
+
+ll_surface <- outer(alphas, betas, Vectorize(function(a, b) {
+  if (a < 0 || b < 0 || (a + b) >= 0.999) return(NA_real_)
+  -nll_garch_VT_shifted(c(a, b), u = u, VL = VL)}))
+
+contour(x = betas, y = alphas, z = t(ll_surface), nlevels = 50,
+        xlab = expression(beta), ylab = expression(alpha),
+        main = "Contornos de la log-verosimilitud (variance targeting.)")
+points(beta_vt, alpha_vt, pch = 19, cex = 2, col = "red")
+abline(h = alpha_vt, col = "red", lty = 2)
+abline(v = beta_vt, col = "red", lty = 2)
+  legend("topright",
+    legend = sprintf("alpha = %.4f\nbeta = %.4f", alpha_vt, beta_vt),
+    bg = "white", text.col = "black")
 ```
 
 \newpage
@@ -239,8 +308,11 @@ comparison_tbl <- dplyr::bind_rows(
 
 # Resultado.
 
-$\sigma^2_n=\omega+\alpha u^2_{n-1}+\beta \sigma^2_{n-1}$, 
-$\omega = V_L(1-\alpha-\beta)$, $v_i=\sigma^2_i$.
+GARCH(1,1): $\sigma^2_n=\omega+\alpha u^2_{n-1}+\beta \sigma^2_{n-1}$.
+
+$\omega = V_L(1-\alpha-\beta)$.
+
+$v_i=\sigma^2_i$.
 
 ```{r}
 omega <- omega_vt
@@ -265,27 +337,33 @@ kable(rbind(head(S, 6), tail(S, 2)), digits = 10, format.args = list(scientific 
 
 # Gráfico.
 
-$\sigma^2_n=\omega+\alpha u^2_{n-1}+\beta \sigma^2_{n-1}$. 
+GARCH(1,1): $\sigma^2_n=\omega+\alpha u^2_{n-1}+\beta \sigma^2_{n-1}$. 
 
 ```{r}
-ggplot(S, aes(x = date, y = 100*v_i^.5)) +
+y_top <- max(100 * sqrt(S$v_i), na.rm = TRUE) * 0.95
+x_left <- min(S$date, na.rm = TRUE) + 50
+
+ggplot(S, aes(x = date, y = 100 * sqrt(v_i))) +
   geom_line(color = "blue") +
-  labs(title = "Volatilidad condicional diaria.
-  GARCH(1,1). S&P500: Julio 10, 2015, a Julio 9, 2020.", 
-  y = NULL, x = "Fecha") +
-  scale_y_continuous(labels = scales::label_percent(accuracy = 0.1, scale = 1)) +
+  labs(title = "Volatilidad condicional diaria.\nGARCH(1,1). S&P500: Julio 10, 2015, a Julio 9, 2020.",
+    y = NULL, x = "Fecha") +
+  scale_y_continuous(labels = label_percent(accuracy = 0.1, scale = 1)) +
+  annotate("text", x = x_left, y = y_top,
+    label = "La volatilidad medida con un GARCH(1,1) tiende a subir rápidamente \n cuando ocurre un shock, pero disminuye de manera más lenta,\n reflejando una cierta persistencia y un proceso de reversión hacia \n la media o hacia su nivel de volatilidad de largo plazo, el típico efecto \n de clustering o agrupamiento de volatilidad observado en los mercados \n financieros.",
+    hjust = 0, vjust = 1, size = 3.5, color = "black") +
   theme_minimal(base_size = 13) +
   theme(plot.title = element_text(face = "bold", hjust = 0.5),
-        axis.title.y = element_text(angle = 0, vjust = 0.5))
+        axis.title.y = element_text(angle = 0, vjust = 0.5)) +
+  theme(panel.background = element_rect(fill = "white", color = NA),
+        plot.background = element_rect(fill = "white", color = NA), panel.grid.major = element_blank(), panel.grid.minor = element_blank())
 ```
 \newpage
 
 # Comparación.
 
-Azul: $\sigma^2_n=\omega+\alpha u^2_{n-1}+\beta \sigma^2_{n-1}$.
+Azul, GARCH(1,1): $\sigma^2_n=\omega+\alpha u^2_{n-1}+\beta \sigma^2_{n-1}$.
 
-Rojo: $s = \frac{1}{n - 1} \sum_{i=1}^{n} (u_i - \bar{u})^2$.
-
+Rojo, Volatilidad no condicional: $s = \frac{1}{n - 1} \sum_{i=1}^{n} (u_i - \bar{u})^2$.
 
 ```{r}
   ggplot(S, aes(x = date, y = 100 * v_i^.5, colour = "Volatilidad condicional")) +
