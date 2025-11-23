@@ -1,6 +1,6 @@
 ---
-title: "\\textbf{Carteras.}"
-subtitle: "xxxx."
+title: "\\textbf{Carteras de inversión.}"
+subtitle: "Una introducción al diseño y análisis."
 author: "Dr. Martín Lozano \\texttt{https://mlozanoqf.github.io/}"
 date: "`r gsub('a\\. m\\.', 'a.m.', gsub('p\\. m\\.', 'p.m.', format(Sys.time(), '%d de %B de %Y, %I:%M %p')))`"
 output:
@@ -34,7 +34,7 @@ library(knitr)
 tabla <- matrix(
   c("$\\times$", "$\\checkmark$", "$\\times$",
     "$\\checkmark$", "$\\times$", "$\\times$",
-    "$\\checkmark$", "$\\times$", "$\\times$"),
+    "$\\times$", "$\\checkmark$", "$\\times$"),
   nrow = 3, byrow = TRUE
 )
 colnames(tabla) <- c("Fundamental", "Intermedio", "Especializado")
@@ -64,1112 +64,571 @@ knitr::opts_chunk$set(
 # Introducción.
 
 \begin{itemize}
-  \item Estimar la volatilidad no condicional de los rendimientos del índice S\&P 500, utilizando datos históricos de precios diarios.
-  \item Rendimientos como cambios porcentuales y logaritmos naturales.
-  \item Base para futuros modelos financieros: Black–Scholes, Markowitz, VaR, Monte Carlo, Random Walk, Geometric Brownian Motion, Vasicek, riesgo de crédito de Merton, CAPM, APT.
+  \item Conceptos fundamentales del análisis riesgo–rendimiento.
+  \item Construir y evaluar portafolios usando datos reales.
+  \item Explicar la frontera media–varianza, destacando cómo se obtiene mediante métodos analíticos y numéricos.
+  \item Cómo los pesos óptimos cambian cuando se permiten o restringen las ventas en corto.
   \end{itemize}
+
+\newpage
+
+# Diez empresas públicas de Estados Unidos.
+
+| Ticker | Nombre de la empresa              | Industria                                                      |
+|--------|------------------------------------|----------------------------------------------------------------|
+| AMD    | Advanced Micro Devices, Inc.       | Computación de alto rendimiento              |
+| CNC    | Centene Corp.                | Servicios de salud            |
+| GIS    | General Mills, Inc.                | Productos de consumo envasados                  |
+| LMT    | Lockheed Martin Corp.        | Aeroespacial y defensa                                         |
+| LRCX   | Lam Research Corp.           | Semiconductores                    |
+| NEM    | Newmont Corp.                | Minería de metales preciosos              |
+| SNPS   | Synopsys, Inc.                     | Software de diseño         |
+| SYF    | Synchrony Financial                | Servicios financieros       |
+| TRMB   | Trimble Inc.                       | Tecnología geoespacial              |
+| TTD    | The Trade Desk, Inc.               | Tecnología publicitaria      |
 
 \newpage
 
 # Paquetes.
 
-| Ticker | Nombre de la empresa              | Industria                                                      |
-|--------|------------------------------------|----------------------------------------------------------------|
-| AMD    | Advanced Micro Devices, Inc.       | Semiconductores / Computación de alto rendimiento              |
-| CNC    | Centene Corporation                | Servicios de salud / Seguros de salud administrados            |
-| GIS    | General Mills, Inc.                | Alimentación / Productos de consumo envasados                  |
-| LMT    | Lockheed Martin Corporation        | Aeroespacial y defensa                                         |
-| LRCX   | Lam Research Corporation           | Equipos para fabricación de semiconductores                    |
-| NEM    | Newmont Corporation                | Minería de metales preciosos (oro, cobre, etc.)                |
-| SNPS   | Synopsys, Inc.                     | Software de automatización de diseño electrónico (EDA)         |
-| SYF    | Synchrony Financial                | Servicios financieros al consumidor / Crédito al consumo       |
-| TRMB   | Trimble Inc.                       | Tecnología geoespacial, construcción y transporte              |
-| TTD    | The Trade Desk, Inc.               | Tecnología publicitaria / Plataforma de compra de anuncios     |
-
-
-
 ```{r}
 library(tidyquant)
-  library(tidyverse)
-  library(lubridate)
-
-  tickers       <- c("AMD","CNC","GIS","LMT","LRCX","NEM","SNPS","SYF","TRMB","TTD")
-  n_months      <- 60L
-  price_start   <- ymd("2020-09-01")                  # un mes extra para generar los retornos
-  price_end     <- price_start %m+% months(n_months + 1) - days(1)
-  returns_start <- price_start %m+% months(1)
-  returns_end   <- returns_start %m+% months(n_months) - months(1)
-
-  prices <- tq_get(
-    tickers,
-    from = price_start,
-    to   = price_end,
-    get  = "stock.prices"
-  )
-
-  monthly_returns <- prices %>%
-    arrange(symbol, date) %>%
-    group_by(symbol) %>%
-    tq_transmute(
-      select      = adjusted,
-      mutate_fun  = periodReturn,
-      period      = "monthly",
-      type        = "arithmetic",
-      col_rename  = "monthly_return"
-    ) %>%
-    filter(between(date, returns_start, returns_end)) %>%
-    mutate(obs = row_number()) %>%
-    filter(obs <= n_months) %>%
-    select(-obs) %>%
-    ungroup()
-
-  stopifnot(n_distinct(monthly_returns$symbol) == length(tickers))
-
-  stats <- monthly_returns %>%
-    group_by(symbol) %>%
-    summarise(
-      expected_return = mean(monthly_return),
-      sd_return       = sd(monthly_return),
-      sharpe_ratio    = expected_return / sd_return,
-      .groups = "drop"
-    )
-
-  returns_wide <- monthly_returns %>%
-    select(date, symbol, monthly_return) %>%
-    pivot_wider(names_from = symbol, values_from = monthly_return) %>%
-    arrange(date)
-
-  corr_mat <- returns_wide %>%
-    select(-date) %>%
-    cor(use = "pairwise.complete.obs")
-
-  lowest_pairs <- corr_mat %>%
-    as_tibble(rownames = "symbol_i") %>%
-    pivot_longer(-symbol_i, names_to = "symbol_j", values_to = "corr") %>%
-    filter(symbol_i < symbol_j) %>%
-    arrange(corr) %>%
-    slice_head(n = 10)
-
-  print(stats)
-  corr_mat_fmt <- corr_mat %>%
-    round(2) %>%                         # 2 decimales bastan para correlaciones
-    format(trim = TRUE, nsmall = 2) %>%  # remueve espacios extra y alinea
-    as.matrix()
-
-  print(corr_mat_fmt, quote = FALSE, right = TRUE)
-  print(lowest_pairs)
-
-```
-
-```{r}
-  library(scales)
-
-  focus_symbols <- c("LRCX", "GIS")
-  base_rows <- tibble(
-    date = price_start,
-    symbol = focus_symbols,
-    monthly_return = NA_real_,
-    index_level = 1
-  )
-
-  cum_returns <- monthly_returns %>%
-    filter(symbol %in% focus_symbols) %>%
-    arrange(symbol, date) %>%
-    group_by(symbol) %>%
-    mutate(index_level = cumprod(1 + monthly_return)) %>%
-    ungroup() %>%
-    bind_rows(base_rows) %>%
-    arrange(symbol, date) %>%
-    select(date, symbol, index_level)
-
-  portfolio <- cum_returns %>%
-    pivot_wider(names_from = symbol, values_from = index_level) %>%
-    mutate(`50/50 LRCX-GIS` = 0.5 * LRCX + 0.5 * GIS) %>%
-    select(date, `50/50 LRCX-GIS`) %>%
-    pivot_longer(-date, names_to = "symbol", values_to = "index_level")
-
-  plot_data <- bind_rows(cum_returns, portfolio)
-
-  last_values <- plot_data %>%
-    arrange(date) %>%
-    group_by(symbol) %>%
-    summarise(final_value = last(index_level), .groups = "drop") %>%
-    arrange(desc(final_value))
-
-  color_values <- c("#1f77b4", "#d62728", "#2ca02c")
-  names(color_values) <- last_values$symbol
-
-  plot_data <- plot_data %>%
-    mutate(symbol = factor(symbol, levels = last_values$symbol))
-
-  label_data <- plot_data %>%
-    group_by(symbol) %>%
-    filter(date == max(date)) %>%
-    ungroup() %>%
-    mutate(label = paste0("$", formatC(index_level, format = "f", digits = 2)))
-
-  ggplot(plot_data, aes(x = date, y = index_level, color = symbol)) +
-    geom_line(size = 1) +
-    geom_text(
-      data = label_data,
-      aes(label = label),
-      hjust = -0.05,
-      vjust = 0.5,
-      show.legend = FALSE
-    ) +
-    scale_color_manual(values = color_values, limits = last_values$symbol) +
-    scale_x_date(expand = expansion(mult = c(0, 0.1))) +
-    scale_y_continuous(labels = dollar_format(prefix = "$")) +
-    labs(
-      title = "Cumulative Growth of $1 (Sep 2020 onward)",
-      y = "Growth of $1",
-      x = NULL,
-      color = "Series"
-    ) +
-    theme_minimal() +
-    theme(
-      legend.position = c(0, 1),
-      legend.justification = c(0, 1),
-      legend.background = element_rect(fill = alpha("white", 0.6), color = NA)
-    )
-```
-
-```{r}
-  weights <- c(LRCX = 0.5, GIS = 0.5)
-
-  stats_lrcx_gis <- monthly_returns %>%
-    filter(symbol %in% names(weights)) %>%
-    group_by(symbol) %>%
-    summarise(
-      expected_return = mean(monthly_return),
-      sd_return       = sd(monthly_return),
-      sharpe_ratio    = expected_return / sd_return,
-      .groups = "drop"
-    )
-
-  portfolio_stats <- monthly_returns %>%
-    filter(symbol %in% names(weights)) %>%
-    mutate(weight = weights[symbol]) %>%
-    group_by(date) %>%
-    summarise(portfolio_return = sum(monthly_return * weight), .groups = "drop") %>%
-    summarise(
-      symbol          = "50/50 LRCX-GIS",
-      expected_return = mean(portfolio_return),
-      sd_return       = sd(portfolio_return),
-      sharpe_ratio    = expected_return / sd_return
-    )
-
-  final_table <- bind_rows(stats_lrcx_gis, portfolio_stats) %>%
-    mutate(symbol = factor(symbol, levels = last_values$symbol)) %>%
-    arrange(symbol)
-
-  print(final_table)
-
-```
-
-```{r}
-  returns_matrix <- monthly_returns %>%
-    filter(symbol %in% names(weights)) %>%
-    select(date, symbol, monthly_return) %>%
-    pivot_wider(names_from = symbol, values_from = monthly_return) %>%
-    arrange(date) %>%
-    select(all_of(names(weights)))
-
-  cov_mat <- cov(returns_matrix, use = "pairwise.complete.obs")
-
-  mu_vec <- stats_lrcx_gis %>%
-    select(symbol, expected_return) %>%
-    deframe()
-  sd_vec <- stats_lrcx_gis %>%
-    select(symbol, sd_return) %>%
-    deframe()
-
- frontier_data <- tibble(weight_lrcx = seq(0, 1, length.out = 200)) %>%
-    mutate(
-      weight_gis      = 1 - weight_lrcx,
-      expected_return = weight_lrcx * mu_vec["LRCX"] + weight_gis * mu_vec["GIS"],
-      variance = weight_lrcx^2 * sd_vec["LRCX"]^2 +
-                 weight_gis^2  * sd_vec["GIS"]^2  +
-                 2 * weight_lrcx * weight_gis * cov_mat["LRCX", "GIS"],
-      sd_return = sqrt(variance)
-    )
-  # sin arrange() para preservar el orden de los pesos
-
-    portfolio_label <- "19.90% LRCX / 80.10% GIS"
-  custom_weights  <- c(LRCX = 0.1990055, GIS = 0.8009945)
-  
-   series_order <- c("LRCX", "GIS", "50/50 LRCX-GIS", portfolio_label)
-  mean_var_points <- final_table %>%
-    filter(symbol %in% series_order) %>%           # deja solo los dos activos + dos carteras
-    mutate(symbol = factor(symbol, levels = series_order)) %>%
-    arrange(symbol)
-  
-
-  ggplot() +
-    geom_path(
-      data = frontier_data,
-      aes(x = sd_return, y = expected_return),
-      color = "grey50",
-      linewidth = 1
-    ) +
-    geom_point(
-      data = mean_var_points,
-      aes(x = sd_return, y = expected_return, color = symbol),
-      size = 5
-    ) +
-    scale_color_manual(values = color_values, limits = last_values$symbol) +
-    scale_x_continuous(labels = percent_format(accuracy = 0.1)) +
-    scale_y_continuous(labels = percent_format(accuracy = 0.1)) +
-    labs(
-      title = "Mean-Variance View (Sep 2020 onward)",
-      x = "Volatility (monthly sd)",
-      y = "Expected monthly return",
-      color = "Series"
-    ) +
-    theme_minimal() +
-    theme(
-      legend.position = c(0, 1),
-      legend.justification = c(0, 1),
-      legend.background = element_rect(fill = alpha("white", 0.6), color = NA)
-    )
-
-```
-
-
-```{r}
+library(tidyverse)
+library(lubridate)
+library(scales)
 library(quadprog)
-
-  assets <- names(weights)
-  cov_two_assets <- cov_mat[assets, assets]
-
-  Dmat <- 2 * cov_two_assets
-  dvec <- rep(0, length(assets))
-  Amat <- matrix(1, nrow = length(assets), ncol = 1)  # 1'w = 1
-  bvec <- 1
-
-  qp <- solve.QP(Dmat, dvec, Amat, bvec, meq = 1)
-  weights_opt <- setNames(qp$solution, assets)
-
-  print(weights_opt)
 ```
 
-```{r}
-  library(scales)
+\newpage
 
-  focus_symbols <- c("LRCX", "GIS")
-  custom_weights <- c(LRCX = 0.1990055, GIS = 0.8009945)
-  portfolio_label <- "19.90% LRCX / 80.10% GIS"
-
-  base_rows <- tibble(
-    date = price_start,
-    symbol = focus_symbols,
-    monthly_return = NA_real_,
-    index_level = 1
-  )
-
-  cum_returns <- monthly_returns %>%
-    filter(symbol %in% focus_symbols) %>%
-    arrange(symbol, date) %>%
-    group_by(symbol) %>%
-    mutate(index_level = cumprod(1 + monthly_return)) %>%
-    ungroup() %>%
-    bind_rows(base_rows) %>%
-    arrange(symbol, date) %>%
-    select(date, symbol, index_level)
-
-portfolio <- cum_returns %>%
-    pivot_wider(names_from = symbol, values_from = index_level) %>%
-    mutate("{portfolio_label}" := custom_weights["LRCX"] * LRCX +
-                                  custom_weights["GIS"]  * GIS) %>%
-    select(date, all_of(portfolio_label)) %>%
-    pivot_longer(-date, names_to = "symbol", values_to = "index_level")
-
-  plot_data <- bind_rows(cum_returns, portfolio)
-
-  last_values <- plot_data %>%
-    arrange(date) %>%
-    group_by(symbol) %>%
-    summarise(final_value = last(index_level), .groups = "drop") %>%
-    arrange(desc(final_value))
-
-  color_values <- c("#1f77b4", "#d62728", "#2ca02c")
-  names(color_values) <- last_values$symbol
-
-  plot_data <- plot_data %>%
-    mutate(symbol = factor(symbol, levels = last_values$symbol))
-
-  label_data <- plot_data %>%
-    group_by(symbol) %>%
-    filter(date == max(date)) %>%
-    ungroup() %>%
-    mutate(label = paste0("$", formatC(index_level, format = "f", digits = 2)))
-
-  ggplot(plot_data, aes(x = date, y = index_level, color = symbol)) +
-    geom_line(size = 1) +
-    geom_text(
-      data = label_data,
-      aes(label = label),
-      hjust = -0.05,
-      vjust = 0.5,
-      show.legend = FALSE
-    ) +
-    scale_color_manual(values = color_values, limits = last_values$symbol) +
-    scale_x_date(expand = expansion(mult = c(0, 0.1))) +
-    scale_y_continuous(labels = dollar_format(prefix = "$")) +
-    labs(
-      title = "Cumulative Growth of $1 (Sep 2020 onward)",
-      y = "Growth of $1",
-      x = NULL,
-      color = "Series"
-    ) +
-    theme_minimal() +
-    theme(
-      legend.position = c(0, 1),
-      legend.justification = c(0, 1),
-      legend.background = element_rect(fill = alpha("white", 0.6), color = NA)
-    )
-```
-
-
+# Inicialización
 
 ```{r}
-  custom_portfolio_stats <- monthly_returns %>%
-    filter(symbol %in% names(custom_weights)) %>%
-    mutate(weight = custom_weights[symbol]) %>%
-    group_by(date) %>%
-    summarise(portfolio_return = sum(monthly_return * weight), .groups = "drop") %>%
-    summarise(
-      symbol          = portfolio_label,
-      expected_return = mean(portfolio_return),
-      sd_return       = sd(portfolio_return),
-      sharpe_ratio    = expected_return / sd_return
-    )
+tickers <- c("AMD","CNC","GIS","LMT","LRCX","NEM","SNPS","SYF","TRMB","TTD")
+n_months <- 60L
+price_start <- ymd("2020-09-01")
+price_end <- price_start %m+% months(n_months + 1) - days(1)
+returns_start <- price_start %m+% months(1)
+returns_end <- returns_start %m+% months(n_months) - months(1)
 
-table_levels <- c("LRCX", "GIS", "50/50 LRCX-GIS", portfolio_label)
+prices <- tq_get(tickers, from = price_start, to = price_end, get = "stock.prices")
 
-  final_table <- final_table %>%
-    mutate(symbol = as.character(symbol)) %>%
-    bind_rows(custom_portfolio_stats) %>%
-    mutate(symbol = factor(symbol, levels = table_levels)) %>%
-    arrange(symbol)
+monthly_returns <- prices |>
+  arrange(symbol, date) |>
+  group_by(symbol) |>
+  tq_transmute(select = adjusted, mutate_fun = periodReturn,
+               period = "monthly", type = "arithmetic",
+               col_rename = "monthly_return") |>
+  filter(between(date, returns_start, returns_end)) |>
+  slice_head(n = n_months) |>
+  ungroup()
 
-  print(final_table)
-```
+stopifnot(n_distinct(monthly_returns$symbol) == length(tickers))
 
-```{r}
-  table_levels <- c("LRCX", "GIS", "50/50 LRCX-GIS", portfolio_label)
+asset_stats <- function(data) {
+  data |>
+    group_by(symbol) |>
+    summarise(ER = mean(monthly_return, na.rm = TRUE),
+              SD = sd(monthly_return, na.rm = TRUE),
+              SR = ER / SD,
+              .groups = "drop")}
 
-  mean_var_points <- final_table %>%
-    mutate(symbol = factor(symbol, levels = table_levels))
+cum_index <- function(data, start_date) {
+  base <- tibble(date = start_date, symbol = unique(data$symbol), index_level = 1)
+  data |>
+    arrange(symbol, date) |>
+    group_by(symbol) |>
+    mutate(index_level = cumprod(1 + monthly_return)) |>
+    ungroup() |>
+    select(date, symbol, index_level) |>
+    bind_rows(base) |>
+    arrange(symbol, date)}
 
-  color_values_mv <- c(
-    "LRCX"                = "#1f77b4",
-    "GIS"                 = "#d62728",
-    "50/50 LRCX-GIS"      = "#2ca02c",
-    portfolio_label       = "#ff7f0e"
-  )
+portfolio_series <- function(data, weights, label, start_date) {
+  data |>
+    filter(symbol %in% names(weights)) |>
+    group_by(date) |>
+    summarise(portfolio_return = sum(monthly_return * weights[symbol]), .groups = "drop") |>
+    arrange(date) |>
+    mutate(index_level = cumprod(1 + portfolio_return), symbol = label) |>
+    select(date, symbol, index_level) |>
+    bind_rows(tibble(date = start_date, symbol = label, index_level = 1))}
 
-  ggplot() +
-    geom_path(
-      data = frontier_data,
-      aes(x = sd_return, y = expected_return),
-      color = "grey50",
-      linewidth = 1
-    ) +
-    geom_point(
-      data = mean_var_points,
-      aes(x = sd_return, y = expected_return, color = symbol),
-      size = 3
-    ) +
-    scale_color_manual(values = color_values_mv, limits = table_levels) +
-    scale_x_continuous(labels = percent_format(accuracy = 0.1)) +
-    scale_y_continuous(labels = percent_format(accuracy = 0.1)) +
-    labs(
-      title = "Mean-Variance View (Sep 2020 onward)",
-      x = "Volatility (monthly sd)",
-      y = "Expected monthly return",
-      color = "Series"
-    ) +
-    theme_minimal() +
-    theme(
-      legend.position = c(0, 1),
-      legend.justification = c(0, 1),
-      legend.background = element_rect(fill = alpha("white", 0.6), color = NA)
-    )
-```
+portfolio_stats <- function(data, weights, label) {
+  pr <- data |>
+    filter(symbol %in% names(weights)) |>
+    group_by(date) |>
+    summarise(portfolio_return = sum(monthly_return * weights[symbol]), .groups = "drop")
+    
+tibble(symbol = label,
+       ER = mean(pr$portfolio_return, na.rm = TRUE),
+       SD  = sd(pr$portfolio_return, na.rm = TRUE),
+       SR = ER / SD)}
 
+returns_wide <- monthly_returns |> 
+  select(date, symbol, monthly_return) |>
+  pivot_wider(names_from = symbol, values_from = monthly_return) |> 
+  arrange(date)
 
-```{r}
-  library(scales)
-
-  focus_symbols <- c("LRCX", "GIS")
-  ci_mult <- 1.96
-
-  base_rows <- tibble(
-    date = price_start,
-    symbol = focus_symbols,
-    monthly_return = NA_real_,
-    index_level = 1
-  )
-
-  cum_returns <- monthly_returns %>%
-    filter(symbol %in% focus_symbols) %>%
-    arrange(symbol, date) %>%
-    group_by(symbol) %>%
-    mutate(index_level = cumprod(1 + monthly_return)) %>%
-    ungroup() %>%
-    bind_rows(base_rows) %>%
-    arrange(symbol, date) %>%
-    select(date, symbol, index_level)
-
-  final_values <- cum_returns %>%
-    group_by(symbol) %>%
-    summarise(final_value = last(index_level), .groups = "drop")
-
-  stats_assets <- monthly_returns %>%
-    filter(symbol %in% focus_symbols) %>%
-    group_by(symbol) %>%
-    summarise(sd_return = sd(monthly_return), .groups = "drop")
-
-  portfolios <- list(
-    "50/50 LRCX-GIS" = c(LRCX = 0.5, GIS = 0.5)
-  )
-  portfolios[[portfolio_label]] <- custom_weights
-
-  stats_portfolios <- bind_rows(lapply(names(portfolios), function(label) {
-    w <- portfolios[[label]]
-
-    pr <- monthly_returns %>%
-      filter(symbol %in% names(w)) %>%
-      mutate(weight = w[symbol]) %>%
-      group_by(date) %>%
-      summarise(portfolio_return = sum(monthly_return * weight), .groups = "drop") %>%
-      arrange(date)
-
-    final_value <- pr %>%
-      mutate(index_level = cumprod(1 + portfolio_return)) %>%
-      pull(index_level) %>%
-      last()
-
-    tibble(
-      symbol      = label,
-      final_value = final_value,
-      sd_return   = sd(pr$portfolio_return)
-    )
-  }))
-
-  result_table <- bind_rows(
-    left_join(final_values, stats_assets, by = "symbol"),
-    stats_portfolios
-  ) %>%
-    mutate(
-      ci_low  = final_value - ci_mult * sd_return,
-      ci_high = final_value + ci_mult * sd_return
-    ) %>%
-    select(symbol, final_value, ci_low, ci_high)
-
-  print(result_table)
-```
-
-
-```{r}
-  library(scales)
-
-  base_rows_all <- tibble(
-    date = price_start,
-    symbol = tickers,
-    monthly_return = NA_real_,
-    index_level = 1
-  )
-
-  cum_returns_all <- monthly_returns %>%
-    filter(symbol %in% tickers) %>%
-    arrange(symbol, date) %>%
-    group_by(symbol) %>%
-    mutate(index_level = cumprod(1 + monthly_return)) %>%
-    ungroup() %>%
-    bind_rows(base_rows_all) %>%
-    arrange(symbol, date) %>%
-    select(date, symbol, index_level)
-
-  last_values_all <- cum_returns_all %>%
-    arrange(date) %>%
-    group_by(symbol) %>%
-    summarise(final_value = last(index_level), .groups = "drop") %>%
-    arrange(desc(final_value))
-
-  plot_data_all <- cum_returns_all %>%
-    mutate(symbol = factor(symbol, levels = last_values_all$symbol))
-
-  label_data_all <- plot_data_all %>%
-    group_by(symbol) %>%
-    filter(date == max(date)) %>%
-    ungroup() %>%
-    mutate(label = paste0("$", formatC(index_level, format = "f", digits = 2)))
-
-  color_values_all <- setNames(scales::hue_pal()(length(tickers)), last_values_all$symbol)
-
-  ggplot(plot_data_all, aes(x = date, y = index_level, color = symbol)) +
-    geom_line(linewidth = 1) +
-    geom_text(
-      data = label_data_all,
-      aes(label = label),
-      hjust = -0.05,
-      vjust = 0.5,
-      size = 3,
-      show.legend = FALSE,
-      check_overlap = TRUE
-    ) +
-    scale_color_manual(values = color_values_all, limits = levels(plot_data_all$symbol)) +
-    scale_x_date(expand = expansion(mult = c(0, 0.12))) +
-    scale_y_continuous(labels = dollar_format(prefix = "$")) +
-    labs(
-      title = "Cumulative Growth of $1 — All 10 Tickers (Sep 2020 onward)",
-      y = "Growth of $1",
-      x = NULL,
-      color = "Ticker"
-    ) +
-    theme_minimal() +
-    theme(
-      legend.position = c(0, 1),
-      legend.justification = c(0, 1),
-      legend.background = element_rect(fill = alpha("white", 0.6), color = NA)
-    )
-```
-
-```{r}
-  end_date <- max(cum_returns_all$date)
-
-  segment_data <- last_values_all %>%
-    mutate(
-      start_date  = price_start,
-      start_value = 1,
-      end_date    = end_date
-    )
+returns_mat_all <- returns_wide |> 
+  select(-date) |>
+  as.matrix()
   
-  segment_plot <- ggplot() +
-    geom_segment(
-      data = segment_data,
-      aes(
-        x    = start_date,
-        xend = end_date,
-        y    = start_value,
-        yend = final_value,
-        color = symbol
-      ),
-      linewidth = 1
-    ) +
-    geom_point(
-      data = segment_data,
-      aes(x = end_date, y = final_value, color = symbol),
-      size = 2
-    ) +
-    geom_text(
-      data = segment_data,
-      aes(
-        x = end_date,
-        y = final_value,
-        label = paste0("$", formatC(final_value, format = "f", digits = 2)),
-        color = symbol
-      ),
-      nudge_x = 70,              # desplaza texto ~1 mes a la derecha
-      vjust = 0.5,
-      size = 3,
-      show.legend = FALSE,
-      check_overlap = TRUE
-    ) +
-    scale_color_manual(values = color_values_all, limits = last_values_all$symbol) +
-    scale_x_date(expand = expansion(mult = c(0, 0.18))) +
-    scale_y_continuous(
-      limits = c(0.4, 3.5),
-      labels = dollar_format(prefix = "$")
-    ) +
-    labs(
-      title = "Start vs Final Growth of $1 — All 10 Tickers",
-      x = NULL,
-      y = "Growth of $1",
-      color = "Ticker"
-    ) +
-    theme_minimal() +
-  theme(
-    legend.position = c(1, 1),
-    legend.justification = c(1, 1),
-    legend.background = element_rect(fill = alpha("white", 0.6), color = NA)
-  )
+mu_vec_all  <- colMeans(returns_mat_all, na.rm = TRUE)
+cov_mat_all <- cov(returns_mat_all, use = "pairwise.complete.obs")
+n_assets <- length(mu_vec_all)
 
-segment_plot
+stats_all <- tibble(symbol = names(mu_vec_all),
+                    ER = mu_vec_all,
+                    SD = apply(returns_mat_all, 2, sd, na.rm = TRUE))
+
+color_values_all <- setNames(scales::hue_pal()(length(mu_vec_all)),
+                             names(mu_vec_all))
 ```
 
+\newpage
+
+# Matriz de correlaciones.
+
 ```{r}
-  library(quadprog)
-
-  returns_wide_all <- monthly_returns %>%
-    filter(symbol %in% tickers) %>%
-    select(date, symbol, monthly_return) %>%
-    pivot_wider(names_from = symbol, values_from = monthly_return) %>%
-    arrange(date)
-
-  returns_matrix <- returns_wide_all %>%
-    select(-date) %>%
-    as.matrix()
-
-  mu_vec <- colMeans(returns_matrix, na.rm = TRUE)
-  cov_mat_all <- cov(returns_matrix, use = "pairwise.complete.obs")
-
-  stats_all <- tibble(
-    symbol = names(mu_vec),
-    expected_return = mu_vec,
-    sd_return = apply(returns_matrix, 2, sd, na.rm = TRUE)
-  )
-
-  target_returns <- seq(
-    from = min(mu_vec),
-    to   = max(mu_vec) + .0001,   # empuja la frontera hacia retornos más altos
-    length.out = 150
-  )
+corr_mat <- returns_wide |> 
+  select(-date) |> 
+  cor(use = "pairwise.complete.obs")
   
-  Amat_base <- rbind(
-    rep(1, length(mu_vec)),
-    mu_vec,
-    diag(length(mu_vec))
-  )
+print(round(corr_mat, 2), quote = FALSE, right = TRUE)
+```
 
-  frontier_points <- map_dfr(target_returns, function(tr) {
-    bvec <- c(1, tr, rep(0, length(mu_vec)))
-    sol <- tryCatch(
-      solve.QP(2 * cov_mat_all, rep(0, length(mu_vec)), t(Amat_base), bvec, meq = 2),
-      error = function(e) NULL
-    )
-    if (is.null(sol)) return(NULL)
 
-    tibble(
-      expected_return = tr,
-      sd_return = sqrt(as.numeric(t(sol$solution) %*% cov_mat_all %*% sol$solution))
-    )
-}) %>% drop_na()
+\newpage
 
-  color_values_all <- setNames(scales::hue_pal()(length(tickers)), stats_all$symbol)
+# Pares de correlaciones mínimas.
+
+```{r}
+lowest_pairs <- corr_mat |>
+  as_tibble(rownames = "symbol_i") |>
+  pivot_longer(-symbol_i, names_to = "symbol_j", values_to = "corr") |>
+  filter(symbol_i < symbol_j) |>
+  arrange(corr) |>
+  slice_head(n = 10)
+
+print(lowest_pairs)
+```
+
+
+\newpage
+
+# Riesgo-rendimiento: 10 activos individuales.
+
+```{r}
+stats <- asset_stats(monthly_returns)
+
+print(stats)
+```
+
+\newpage
+
+# Rendimiento acumulado, cartera ingenua.
+
+```{r}
+focus <- c("LRCX", "GIS")
+color_values <- c("LRCX"="steelblue","GIS"="green","50/50 LRCX-GIS"="red")
+
+cum_focus <- monthly_returns |> 
+  filter(symbol %in% focus) |> 
+  cum_index(price_start)
+  
+portfolio_50_50 <- portfolio_series(monthly_returns, 
+                                    c(LRCX = 0.5, GIS = 0.5),
+                                    "50/50 LRCX-GIS", price_start)
+
+plot_data <- bind_rows(cum_focus, portfolio_50_50)
+
+last_vals <- plot_data |>
+  group_by(symbol) |>
+  summarise(final_value = last(index_level), .groups = "drop") |>
+  arrange(desc(final_value))
+  
+label_data <- plot_data |>
+  group_by(symbol) |>
+  filter(date == max(date)) |>
+  mutate(label = paste0("$", formatC(index_level, format="f", digits=2))) |>
+  ungroup()
+
+ggplot(plot_data, aes(date, index_level, color = factor(symbol, levels = last_vals$symbol))) +
+  geom_line(linewidth = 1) +
+  geom_text(data = label_data, aes(label = label), hjust = -0.05, vjust = 0.5, show.legend = FALSE) +
+  scale_color_manual(values = color_values, limits = last_vals$symbol) +
+  scale_x_date(expand = expansion(mult = c(0, 0.1))) +
+  scale_y_continuous(labels = dollar_format(prefix = "$")) +
+  labs(title = "Rendimiento acumulado.", y = "Rendimiento acumulado", x = NULL, color = "Series") +
+  theme_minimal() +
+  theme(legend.position = c(0,1), legend.justification = c(0,1),
+        legend.background = element_rect(fill = alpha("white", 0.6), color = NA))
+```
+
+\newpage
+
+# Riesgo-rendimiento: cartera ingenua y componentes.
+
+```{r}
+weights_50_50 <- c(LRCX = 0.5, GIS = 0.5)
+stats_lrcx_gis <- stats |> filter(symbol %in% names(weights_50_50))
+portfolio_stats_50_50 <- portfolio_stats(monthly_returns, weights_50_50, "50/50 LRCX-GIS")
+
+final_table <- bind_rows(stats_lrcx_gis, portfolio_stats_50_50)
+
+print(final_table)
+```
+
+\newpage
+
+# Frontera media-varianza: 2 activos.
+
+```{r}
+returns_matrix_2 <- returns_wide |> 
+  select(all_of(focus))
+
+cov_mat_2 <- cov(returns_matrix_2, use = "pairwise.complete.obs")
+mu_vec_2  <- colMeans(returns_matrix_2, na.rm = TRUE)
+
+frontier_data <- tibble(weight_lrcx = seq(0, 1, length.out = 200)) |>
+  mutate(weight_gis = 1 - weight_lrcx,
+         ER = weight_lrcx * mu_vec_2["LRCX"] + weight_gis * mu_vec_2["GIS"],
+         variance = weight_lrcx^2 * var(returns_matrix_2$LRCX, na.rm = TRUE) + 
+           weight_gis^2 * var(returns_matrix_2$GIS, na.rm = TRUE) + 
+           2 * weight_lrcx * weight_gis * cov_mat_2["LRCX", "GIS"], 
+         SD = sqrt(variance))
+
+mean_var_points <- final_table |>
+  mutate(symbol = factor(symbol, levels = c("LRCX", "GIS", "50/50 LRCX-GIS"))) |>
+  arrange(symbol)
 
 ggplot() +
-    geom_path(
-      data = frontier_points,
-      aes(x = sd_return, y = expected_return),
-      color = "grey50",
-      linewidth = 1
-    ) +
-    geom_point(
-      data = stats_all,
-      aes(x = sd_return, y = expected_return, color = symbol),
-      size = 3
-    ) +
-    geom_text(
-      data = stats_all,
-      aes(x = sd_return, y = expected_return, label = symbol, color = symbol),
-      vjust = 1.5,
-      size = 3,
-      show.legend = FALSE
-    ) +
-    scale_color_manual(values = color_values_all, limits = stats_all$symbol) +
-    scale_x_continuous(
-      limits = c(0.02, 0.2),
-      labels = scales::percent_format(accuracy = 0.1)
-    ) +
-    scale_y_continuous(labels = scales::percent_format(accuracy = 0.1),
-                             limits = c(-0.01, 0.03)) +
-    labs(
-      title = "Mean-Variance Map — All 10 Tickers",
-      x = "Volatility (monthly sd)",
-      y = "Expected monthly return"
-    ) +
-    guides(color = "none") +
-    theme_minimal() +
-    theme(legend.position = "none")
-
+  geom_path(data = frontier_data, aes(SD, ER), color = "grey", linewidth = 1) +
+  geom_point(data = mean_var_points, aes(SD, ER, color = symbol), size = 5) +
+  scale_color_manual(values = color_values, limits = levels(mean_var_points$symbol)) +
+    scale_x_continuous(limits = c(0.025, 0.18), labels = percent_format(accuracy = 0.1)) +
+  scale_y_continuous(limits = c(min(mu_vec_all), max(mu_vec_all)), 
+                     labels = percent_format(accuracy = 0.1)) +
+  labs(title = "Frontera media-varianza.",
+       x = "Volatilidad", y = "Rendimiento esperado", color = "Series") +
+  theme_minimal() +
+  theme(legend.position = c(0,1), legend.justification = c(0,1),
+        legend.background = element_rect(fill = alpha("white", 0.6), color = NA))
 ```
 
+\newpage
+
+# Cartera de mínima varianza: método numérico de optimización.
+
 ```{r}
-  library(quadprog)
+minvar2_label <- "Min-Var 2-Asset (LRCX-GIS)"
 
-  assets_all <- tickers
-  n_assets <- length(assets_all)
+assets_2 <- focus
+qp_2 <- solve.QP(Dmat = 2 * cov_mat_2,
+                 dvec = rep(0, length(assets_2)),
+                 Amat = matrix(1, nrow = length(assets_2), ncol = 1),
+                 bvec = 1, meq = 1)
 
-  Dmat <- 2 * cov_mat_all
-  dvec <- rep(0, n_assets)
+weights_minvar2_qp <- setNames(qp_2$solution, assets_2)
 
-  Amat <- cbind(
-    rep(1, n_assets),         # suma de pesos = 1  (meq = 1)
-    diag(n_assets)            # pesos ≥ 0
-  )
-  bvec <- c(1, rep(0, n_assets))
-
-  qp_mv <- solve.QP(Dmat, dvec, Amat, bvec, meq = 1)
-  weights_mv <- setNames(qp_mv$solution, assets_all)
-
-  min_var_weights <- tibble(
-    symbol = assets_all,
-    weight = round(weights_mv, 4)
-  ) %>%
-    arrange(desc(weight))
-
-  print(min_var_weights)
-```
-```{r}
-  library(quadprog)
-
-  returns_wide_all <- monthly_returns %>%
-    filter(symbol %in% tickers) %>%
-    select(date, symbol, monthly_return) %>%
-    pivot_wider(names_from = symbol, values_from = monthly_return) %>%
-    arrange(date)
-
-  returns_matrix <- returns_wide_all %>%
-    select(-date) %>%
-    as.matrix()
-
-  mu_vec <- colMeans(returns_matrix, na.rm = TRUE)
-  cov_mat_all <- cov(returns_matrix, use = "pairwise.complete.obs")
-
-  stats_all <- tibble(
-    symbol = names(mu_vec),
-    expected_return = mu_vec,
-    sd_return = apply(returns_matrix, 2, sd, na.rm = TRUE)
-  )
-
-  target_returns <- seq(
-    from = min(mu_vec),
-    to   = max(mu_vec) + 0.0001,
-    length.out = 150
-  )
-
-  Amat_base <- rbind(
-    rep(1, length(mu_vec)),
-    mu_vec,
-    diag(length(mu_vec))
-  )
-
-  frontier_points <- map_dfr(target_returns, function(tr) {
-    bvec <- c(1, tr, rep(0, length(mu_vec)))
-    sol <- tryCatch(
-      solve.QP(2 * cov_mat_all, rep(0, length(mu_vec)), t(Amat_base), bvec, meq = 2),
-      error = function(e) NULL
-    )
-    if (is.null(sol)) return(NULL)
-
-    tibble(
-      expected_return = tr,
-      sd_return = sqrt(as.numeric(t(sol$solution) %*% cov_mat_all %*% sol$solution))
-    )
-  }) %>% drop_na()
-
-  weights_mv <- solve.QP(
-    2 * cov_mat_all,
-    rep(0, length(mu_vec)),
-    cbind(rep(1, length(mu_vec)), diag(length(mu_vec))),
-    c(1, rep(0, length(mu_vec))),
-    meq = 1
-  )$solution
-
-  min_var_point <- tibble(
-    symbol = "Min-Var Portfolio",
-    expected_return = sum(weights_mv * mu_vec),
-    sd_return = sqrt(as.numeric(t(weights_mv) %*% cov_mat_all %*% weights_mv))
-  )
-
-  stats_all_ext <- bind_rows(stats_all, min_var_point)
-
-  color_values_all <- setNames(scales::hue_pal()(length(tickers)), stats_all$symbol)
-  color_values_ext <- c(color_values_all, "Min-Var Portfolio" = "black")
-
-  ggplot() +
-    geom_path(
-      data = frontier_points,
-      aes(x = sd_return, y = expected_return),
-      color = "grey50",
-      linewidth = 1
-    ) +
-    geom_point(
-      data = stats_all_ext,
-      aes(x = sd_return, y = expected_return, color = symbol),
-      size = 3
-    ) +
-    geom_text(
-      data = stats_all_ext,
-      aes(x = sd_return, y = expected_return, label = symbol, color = symbol),
-      vjust = 1.5,
-      size = 3,
-      show.legend = FALSE
-    ) +
-    scale_color_manual(values = color_values_ext, limits = stats_all_ext$symbol) +
-    scale_x_continuous(
-      limits = c(0.02, 0.2),
-      labels = scales::percent_format(accuracy = 0.1)
-    ) +
-    scale_y_continuous(
-      limits = c(-0.01, 0.03),
-      labels = scales::percent_format(accuracy = 0.1)
-    ) +
-    labs(
-      title = "Mean-Variance Map — All 10 Tickers",
-      x = "Volatility (monthly sd)",
-      y = "Expected monthly return"
-    ) +
-    guides(color = "none") +
-    theme_minimal() +
-    theme(legend.position = "none")
-
+print(weights_minvar2_qp)
 ```
 
+\newpage
 
-```{r}
-  asset_stats <- monthly_returns %>%
-    filter(symbol %in% tickers) %>%
-    group_by(symbol) %>%
-    summarise(
-      expected_return = mean(monthly_return),
-      sd_return       = sd(monthly_return),
-      sharpe_ratio    = expected_return / sd_return,
-      .groups = "drop"
-    )
+# Cartera de mínima varianza: método analítico algebráico para 2 activos.
 
-  weights_50_50 <- c(LRCX = 0.5, GIS = 0.5)
-  min_var_label <- "Min-Var 10-Asset"
-  weights_mv_all <- setNames(round(weights_mv, 4), tickers)  # del bloque previo
+$w_1^* = \frac{\sigma_2^2 - \sigma_{12}}{\sigma_1^2 + \sigma_2^2 - 2\sigma_{12}}$.
 
-  portfolio_specs <- list(
-    "50/50 LRCX-GIS" = weights_50_50,
-    portfolio_label  = custom_weights
-  )
-  portfolio_specs[[min_var_label]] <- weights_mv_all
-
-
-  portfolio_stats_ext <- imap_dfr(portfolio_specs, function(w, label) {
-    returns <- monthly_returns %>%
-      filter(symbol %in% names(w)) %>%
-      mutate(weight = w[symbol]) %>%
-      group_by(date) %>%
-      summarise(portfolio_return = sum(monthly_return * weight), .groups = "drop")
-
-    tibble(
-      symbol          = label,
-      expected_return = mean(returns$portfolio_return),
-      sd_return       = sd(returns$portfolio_return),
-      sharpe_ratio    = expected_return / sd_return
-    )
-  })
-
-  table_levels <- c(tickers, names(portfolio_specs))
-
-  final_table <- bind_rows(asset_stats, portfolio_stats_ext) %>%
-    mutate(symbol = factor(symbol, levels = table_levels)) %>%
-    arrange(symbol)
-
-  print(final_table)
-```
-
-```{r}
-  portfolio_defs <- list(
-    "50/50 LRCX-GIS"       = weights_50_50,
-    portfolio_label        = custom_weights,
-    min_var_label          = weights_mv_all
-  )
-
-  portfolio_cum_returns <- imap_dfr(portfolio_defs, function(w, label) {
-    returns <- monthly_returns %>%
-      filter(symbol %in% names(w)) %>%
-      mutate(weight = w[symbol]) %>%
-      group_by(date) %>%
-      summarise(portfolio_return = sum(monthly_return * weight), .groups = "drop") %>%
-      arrange(date) %>%
-      mutate(index_level = cumprod(1 + portfolio_return)) %>%
-      mutate(symbol = label) %>%
-      select(date, symbol, index_level)
-
-    bind_rows(
-      tibble(date = price_start, symbol = label, index_level = 1),
-      returns
-    )
-  })
-
-  last_values_port <- portfolio_cum_returns %>%
-    arrange(date) %>%
-    group_by(symbol) %>%
-    summarise(final_value = last(index_level), .groups = "drop") %>%
-    arrange(desc(final_value))
-
-  portfolio_colors <- c(
-    "50/50 LRCX-GIS" = "#1f77b4",
-    portfolio_label  = "#d62728",
-    min_var_label    = "#2ca02c"
-  )
-
-  plot_portfolios <- portfolio_cum_returns %>%
-    mutate(symbol = factor(symbol, levels = last_values_port$symbol))
-
-  label_data_port <- plot_portfolios %>%
-    group_by(symbol) %>%
-    filter(date == max(date)) %>%
-    ungroup() %>%
-    mutate(label = paste0("$", formatC(index_level, format = "f", digits = 2)))
-
-  ggplot(plot_portfolios, aes(x = date, y = index_level, color = symbol)) +
-    geom_line(linewidth = 1) +
-    geom_text(
-      data = label_data_port,
-      aes(label = label),
-      hjust = -0.05,
-      vjust = 0.5,
-      size = 3.2,
-      show.legend = FALSE
-    ) +
-    scale_color_manual(values = portfolio_colors, limits = last_values_port$symbol) +
-    scale_x_date(expand = expansion(mult = c(0, 0.12))) +
-    scale_y_continuous(labels = scales::dollar_format(prefix = "$")) +
-    labs(
-      title = "Cumulative Growth of $1 — Three Portfolios",
-      y = "Growth of $1",
-      x = NULL,
-      color = "Portfolio"
-    ) +
-    theme_minimal() +
-    theme(
-      legend.position = c(0, 1),
-      legend.justification = c(0, 1),
-      legend.background = element_rect(fill = scales::alpha("white", 0.6), color = NA)
-    )
-
-```
-
-```{r}
-  weights_50_50 <- c(LRCX = 0.5, GIS = 0.5)  # ya definido antes
-  custom_weights <- c(LRCX = 0.1990055, GIS = 0.8009945)  # o el vector que uses
-  portfolio_label <- "19.90% LRCX / 80.10% GIS"           # etiqueta actual
-
-  portfolio_points <- tribble(
-    ~symbol,                 ~weights,
-    "50/50 LRCX-GIS",        weights_50_50,
-    portfolio_label,         custom_weights
-  ) %>%
-    mutate(
-      expected_return = map_dbl(weights, ~ sum(.x * mu_vec[names(.x)])),
-      sd_return       = map_dbl(weights,  ~ sqrt(as.numeric(t(.x) %*% cov_mat_all[names(.x), names(.x)] %*% .x)))
-    ) %>%
-    select(-weights)
-
-  stats_all_ext <- bind_rows(stats_all, portfolio_points, min_var_point)
-
-  color_values_ext <- c(
-    color_values_all,
-    "50/50 LRCX-GIS"          = "#1f77b4",
-    portfolio_label           = "#d62728",
-    "Min-Var Portfolio"       = "black"
-  )
   
+```{r}
+Sigma_2 <- cov_mat_2[assets_2, assets_2]
+var1  <- Sigma_2[1, 1]; var2 <- Sigma_2[2, 2]; cov12 <- Sigma_2[1, 2]
+w1 <- (var2 - cov12) / (var1 + var2 - 2 * cov12)
+weights_minvar2_closed <- setNames(c(w1, 1 - w1), assets_2)
 
-  ggplot(plot_portfolios, aes(x = date, y = index_level, color = symbol)) +
-    geom_line(linewidth = 1) +
-    geom_text(
-      data = label_data_port,
-      aes(label = label),
-      hjust = -0.05,
-      vjust = 0.5,
-      size = 3.2,
-      show.legend = FALSE
-    ) +
-    scale_color_manual(values = portfolio_colors, limits = last_values_port$symbol) +
-    scale_x_date(expand = expansion(mult = c(0, 0.12))) +
-    scale_y_continuous(labels = scales::dollar_format(prefix = "$")) +
-    labs(
-      title = "Cumulative Growth of $1 — Three Portfolios",
-      y = "Growth of $1",
-      x = NULL,
-      color = "Portfolio"
-    ) +
-    theme_minimal() +
-    theme(
-      legend.position = c(0, 1),
-      legend.justification = c(0, 1),
-      legend.background = element_rect(fill = scales::alpha("white", 0.6), color = NA)
-    )
-  
+print(weights_minvar2_closed)
 ```
+
+\newpage
+
+# Cartera de mínima varianza: método analítico matricial para 2 activos.
+
+$w^* = \frac{\Sigma^{-1}\mathbf{1}}{\mathbf{1}^\top\Sigma^{-1}\mathbf{1}}$
 
 ```{r}
-  library(quadprog)
+Sigma_2 <- cov_mat_2[assets_2, assets_2, drop = FALSE]
+ones <- rep(1, length(assets_2))
+Sigma_inv <- solve(Sigma_2)
+num <- Sigma_inv %*% ones
+den <- as.numeric(t(ones) %*% Sigma_inv %*% ones)
 
-  weights_50_50 <- c(LRCX = 0.5, GIS = 0.5)
-  portfolio_label <- "19.90% LRCX / 80.10% GIS"   # usa el texto que ya venías ocupando
-  custom_weights <- c(LRCX = 0.1990055, GIS = 0.8009945)
+w_star <- as.numeric(num / den)
+names(w_star) <- assets_2
 
-  portfolio_points <- list(
-    "50/50 LRCX-GIS" = weights_50_50,
-    portfolio_label  = custom_weights
-  ) %>%
-    imap_dfr(function(w, label) {
-      assets <- names(w)
-      mu     <- mu_vec[assets]
-      covar  <- cov_mat_all[assets, assets]
-
-      tibble(
-        symbol          = label,
-        expected_return = sum(w * mu),
-        sd_return       = sqrt(as.numeric(t(w) %*% covar %*% w))
-      )
-    })
-  
-    stats_all_ext <- bind_rows(stats_all, portfolio_points, min_var_point)
-
-  color_values_ext <- c(
-    color_values_all,
-    "50/50 LRCX-GIS"        = "#1f77b4",
-    portfolio_label         = "#d62728",
-    "Min-Var Portfolio"     = "black"
-  )
-  
-  ggplot() +
-    geom_path(
-      data = frontier_points,
-      aes(x = sd_return, y = expected_return),
-      color = "grey50",
-      linewidth = 1
-    ) +
-    geom_point(
-      data = stats_all_ext,
-      aes(x = sd_return, y = expected_return, color = symbol),
-      size = 3
-    ) +
-    geom_text(
-      data = stats_all_ext,
-      aes(x = sd_return, y = expected_return, label = symbol, color = symbol),
-      vjust = 1.5,
-      size = 3,
-      show.legend = FALSE
-    ) +
-    scale_color_manual(values = color_values_ext, limits = stats_all_ext$symbol) +
-    scale_x_continuous(
-      limits = c(0.02, 0.2),
-      labels = scales::percent_format(accuracy = 0.1)
-    ) +
-    scale_y_continuous(
-      limits = c(-0.01, 0.03),
-      labels = scales::percent_format(accuracy = 0.1)
-    ) +
-    labs(
-      title = "Mean-Variance Map — All 10 Tickers",
-      x = "Volatility (monthly sd)",
-      y = "Expected monthly return"
-    ) +
-    guides(color = "none") +
-    theme_minimal() +
-    theme(legend.position = "none")
-
+print(w_star)
 ```
+\newpage
+
+# Frontera media-varianza: 2 activos, cartera MV.
+
+```{r}
+minvar2_label <- "MV LRCX-GIS"
+minvar_point_2 <- 
+  tibble(symbol = minvar2_label,
+         ER = sum(weights_minvar2_qp * mu_vec_2),
+         SD = sqrt(as.numeric(t(weights_minvar2_qp) %*% cov_mat_2 %*% weights_minvar2_qp)))
+
+mean_var_points_ext <- bind_rows(stats_lrcx_gis, 
+                                 portfolio_stats_50_50, 
+                                 minvar_point_2) |>
+  mutate(symbol = factor(symbol, 
+                         levels = c("LRCX", "GIS", "50/50 LRCX-GIS", minvar2_label))) |>
+  arrange(symbol)
+
+color_values_ext <- c(color_values, setNames("black", minvar2_label))
+
+ggplot() +
+  geom_path(data = frontier_data, aes(SD, ER), color = "grey", linewidth = 1) +
+  geom_point(data = mean_var_points_ext, aes(SD, ER, color = symbol), size = 5) +
+  scale_color_manual(values = color_values_ext, limits = levels(mean_var_points_ext$symbol)) +
+  scale_x_continuous(limits = c(0.025, 0.18), labels = percent_format(accuracy = 0.1)) +
+  scale_y_continuous(limits = c(min(mu_vec_all), max(mu_vec_all)), labels = percent_format(accuracy = 0.1)) +
+  labs(title = "Frontera media-varianza.",
+       x = "Volatilidad", y = "Rendimiento esperado", color = "Series") +
+  theme_minimal() +
+  theme(legend.position = c(0, 1), 
+        legend.justification = c(0, 1),
+        legend.background = element_rect(fill = alpha("white", 0.6), color = NA))
+```
+
+
+\newpage
+
+# Cartera de mínima varianza: método numérico para 10 activos.
+
+Pesos positivos.
+
+```{r}
+minvar10_ns_label <- "MV (no shorts)"
+
+weights_minvar10_ns <- 
+  solve.QP(2 * cov_mat_all, rep(0, length(mu_vec_all)),
+           cbind(rep(1, length(mu_vec_all)), diag(length(mu_vec_all))),
+           c(1, rep(0, length(mu_vec_all))), meq = 1)$solution
+
+names(weights_minvar10_ns) <- names(mu_vec_all)
+  
+minvar_point_10_ns <- 
+  tibble(symbol = minvar10_ns_label,
+         ER = sum(weights_minvar10_ns * mu_vec_all),
+         SD = sqrt(as.numeric(t(weights_minvar10_ns) %*% cov_mat_all %*% weights_minvar10_ns)),
+         SR = ER/SD)
+
+minvar_point_10_ns
+```
+
+\newpage
+
+# Cartera de mínima varianza: método numérico para 10 activos, pesos.
+
+```{r}
+minvar_weights_table_ns <- 
+  tibble(symbol  = names(mu_vec_all),
+         weight = weights_minvar10_ns,
+         weight_pct = scales::percent(weights_minvar10_ns, accuracy = 0.01)) |>
+  arrange(desc(weight)) |>
+  bind_rows(tibble(symbol = "Total",
+                   weight = sum(weights_minvar10_ns),
+                   weight_pct = scales::percent(sum(weights_minvar10_ns),
+                                                accuracy = 0.01)))
+
+print(minvar_weights_table_ns)
+```
+
+\newpage
+
+# Cartera de mínima varianza: método analítico matricial para 10 activos, pesos.
+
+$w^{*} = \dfrac{\Sigma^{-1}\mathbf{1}}{\mathbf{1}^{\top}\Sigma^{-1}\mathbf{1}}$.
+Markowitz, ventas en corto permitidas.
+
+```{r}
+minvar10_short_label <- "MV (shorts)"
+
+Sigma_all  <- cov_mat_all
+ones_all   <- rep(1, length(mu_vec_all))
+inv_Sigma_all <- solve(Sigma_all)
+A_all <- as.numeric(t(ones_all) %*% inv_Sigma_all %*% ones_all)
+
+weights_minvar10_short <- as.numeric(inv_Sigma_all %*% ones_all / A_all)
+names(weights_minvar10_short) <- names(mu_vec_all)
+
+minvar_point_10_short <- 
+  tibble(symbol = minvar10_short_label, ER = sum(weights_minvar10_short * mu_vec_all),
+         SD = sqrt(as.numeric(t(weights_minvar10_short) %*% Sigma_all %*% weights_minvar10_short)))
+
+weights_gmv_table_short <- 
+  tibble(symbol = names(mu_vec_all),
+         weight = weights_minvar10_short,
+         weight_pct = scales::percent(weights_minvar10_short, accuracy = 0.01)) |>
+  arrange(desc(weight)) |>
+  bind_rows(tibble(symbol = "Total",
+                   weight = sum(weights_minvar10_short),
+                   weight_pct = scales::percent(sum(weights_minvar10_short), accuracy = 0.01)))
+
+print(weights_gmv_table_short)
+```
+
+\newpage
+
+# Frontera media-varianza: 10 activos, sin ventas en corto.
+
+```{r}
+target_returns <- seq(min(mu_vec_all), max(mu_vec_all), length.out = 150)
+Amat_ns <- rbind(rep(1, n_assets), mu_vec_all, diag(n_assets))
+
+frontier_points_ns <- map_dfr(target_returns, function(tr) {
+  bvec <- c(1, tr, rep(0, n_assets))
+  sol <- tryCatch(solve.QP(2 * cov_mat_all, rep(0, n_assets), 
+                           t(Amat_ns), bvec, meq = 2),
+                  error = function(e) NULL)
+  if (is.null(sol)) return(NULL)
+  tibble(ER = tr,
+         SD = sqrt(as.numeric(t(sol$solution) %*% cov_mat_all %*% sol$solution)))}) |> 
+  drop_na()
+
+stats_all_ext_ns  <- bind_rows(stats_all, minvar_point_10_ns)
+color_values_ext_ns <- c(color_values_all, setNames("black", minvar10_ns_label))
+
+ggplot() +
+  geom_path(data = frontier_points_ns, aes(SD, ER), color = "grey", linewidth = 1) +
+  geom_point(data = stats_all_ext_ns, aes(SD, ER, color = symbol), size = 5) +
+  geom_text(data = stats_all_ext_ns, aes(SD, ER, label = symbol, color = symbol),
+            vjust = 2, size = 3, show.legend = FALSE) +
+  scale_color_manual(values = color_values_ext_ns, limits = stats_all_ext_ns$symbol) +
+  scale_x_continuous(limits = c(0.025, 0.19), labels = percent_format(accuracy = 0.1)) +
+  scale_y_continuous(limits = c(-0.01, 0.03), labels = percent_format(accuracy = 0.1)) +
+  labs(title = "Frontera media-varianza, sin ventas en corto.",
+       x = "Volatilidad", y = "Rendimiento esperado") +
+  guides(color = "none") +
+  theme_minimal()
+```
+
+\newpage
+
+# Frontera media-varianza: 10 activos, con ventas en corto.
+
+
+```{r}
+Amat_short <- rbind(rep(1, n_assets), mu_vec_all)
+
+frontier_points_short <- map_dfr(target_returns, function(tr) {
+  bvec <- c(1, tr)
+  sol <- tryCatch(solve.QP(2 * cov_mat_all, rep(0, n_assets),
+                           t(Amat_short), bvec, meq = 2),
+                  error = function(e) NULL)
+  if (is.null(sol)) return(NULL)
+  tibble(ER = tr,
+         SD = sqrt(as.numeric(t(sol$solution) %*% cov_mat_all %*% sol$solution)))}) |> 
+  drop_na()
+
+stats_all_ext_short <- bind_rows(stats_all, minvar_point_10_short)
+color_values_ext_short <- c(color_values_all, setNames("black", minvar10_short_label))
+
+ggplot() +
+  geom_path(data = frontier_points_short, aes(SD, ER), color = "grey", linewidth = 1) +
+  geom_point(data = stats_all_ext_short, aes(SD, ER, color = symbol), size = 5) +
+  geom_text(data = stats_all_ext_short, aes(SD, ER, label = symbol, color = symbol),
+            vjust = 2, size = 3, show.legend = FALSE) +
+  scale_color_manual(values = color_values_ext_short, limits = stats_all_ext_short$symbol) +
+  scale_x_continuous(limits = c(0.025, 0.19), labels = percent_format(accuracy = 0.1)) +
+  scale_y_continuous(limits = c(-0.01, 0.03),
+                     labels = percent_format(accuracy = 0.1)) +
+  labs(title = "Fronteria media-varianza, con ventas en corto.",
+       x = "Volatilidad", y = "Rendimiento esperado") +
+  guides(color = "none") +
+  theme_minimal()
+```
+\newpage
+
+# Riesgo-rendimiento: 10 activos individuales y carteras.
+
+```{r}
+weights_50_50 <- c(LRCX = 0.5, GIS = 0.5)
+custom_weights  <- c(LRCX = 0.1990055, GIS = 0.8009945)
+portfolio_label <- "19.90% LRCX / 80.10% GIS"
+
+weights_specs <- 
+  list("50/50 LRCX-GIS" = weights_50_50,
+       "19.90% LRCX / 80.10% GIS" = custom_weights,
+       "MV 10-Asset (No Shorts)" = weights_minvar10_ns,
+       "MV 10-Asset (Shorts Allowed)" = weights_minvar10_short)
+
+portfolio_stats_ext <- imap_dfr(weights_specs, ~ portfolio_stats(monthly_returns, .x, .y))
+
+final_table <- bind_rows(asset_stats(monthly_returns), portfolio_stats_ext) |>
+  mutate(symbol = factor(symbol, levels = c(tickers, names(weights_specs)))) |>
+  arrange(symbol)
+  
+print(final_table)
+```
+\newpage
+
+# Rendimiento acumulado, todas las carteras.
+
+```{r}
+portfolio_cum <- imap_dfr(weights_specs, ~ portfolio_series(monthly_returns, .x, .y, price_start))
+
+last_values_port <- portfolio_cum |>
+  group_by(symbol) |>
+  summarise(final_value = last(index_level), .groups = "drop") |>
+  arrange(desc(final_value))
+
+series_levels <- last_values_port$symbol
+
+palette_base <- c("50/50 LRCX-GIS" = "black",
+                  "19.90% LRCX / 80.10% GIS" = "green",
+                  "MV 10-Asset (No Shorts)" = "purple",
+                  "MV 10-Asset (Shorts Allowed)" = "#ff7f0e")
+
+portfolio_colors <- palette_base[series_levels]
+
+portfolio_cum <- portfolio_cum |>
+  mutate(symbol = factor(symbol, levels = series_levels))
+
+label_data_port <- portfolio_cum |>
+  group_by(symbol) |> filter(date == max(date)) |>
+  mutate(label = paste0("$", formatC(index_level, format="f", digits=2))) |>
+  ungroup()
+
+ggplot(portfolio_cum, aes(date, index_level, color = symbol)) +
+  geom_line(linewidth = 1) +
+  geom_text(data = label_data_port, aes(label = label),
+            hjust = -0.05, vjust = 0.5, size = 3.2, show.legend = FALSE) +
+  scale_color_manual(values = portfolio_colors, breaks = series_levels, 
+                     limits = series_levels, drop = FALSE) +
+  scale_x_date(expand = expansion(mult = c(0, 0.12))) +
+  scale_y_continuous(labels = dollar_format(prefix = "$")) +
+  labs(title = "Rendimiento acumulado.",
+       y = "Rendimiento acumulado", x = NULL, color = "Series") +
+  theme_minimal() +
+  theme(legend.position = c(0, 1), legend.justification = c(0, 1),
+        legend.background = element_rect(fill = alpha("white", 0.6), color = NA))
+```
+
+
+
+
+\newpage
 
 # Conclusión.
 
 \Large 
 
 \begin{itemize}
-  \item Los rendimientos logarítmicos y porcentuales generan resultados prácticamente equivalentes.
-  \item El enfoque no condicional, asume una volatilidad constante en el tiempo y, por tanto, no captura la naturaleza dinámica y heterocedástica observada en los mercados financieros.
-  \end{itemize}
-
+  \item La diversificación reduce riesgo y permite construir portafolios con mejor relación riesgo–rendimiento que los activos individuales.
+  \item La frontera media–varianza es una herramienta poderosa para visualizar las decisiones de inversión y comprender el intercambio entre riesgo y retorno.
+\end{itemize}
+  

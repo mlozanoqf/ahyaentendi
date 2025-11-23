@@ -11,7 +11,7 @@ https://www.youtube.com/@ahyaentendi
 1. Modelo GARCH(1,1). `garch11`
 1. Introducción a las velas japonesas en trading.
 1. Estrategias de cobertura y especulación usando opciones financieras.
-1. Carteras de inversión con 2 y con 10 acciones (próximamente).
+1. Carteras de inversión, una introducción al diseño y análisis (próximamente).
 
 ## Shorts.
 
@@ -22,5 +22,5 @@ https://www.youtube.com/@ahyaentendi
 1. Finanzas (próximamente).
 1. Economía (próximamente).
 1. Costos en contabilidad, finanzas y economía (próximamente).
-
+1. Ventas en corto (próximamente).
 
