@@ -1,0 +1,144 @@
+---
+title: "\\textbf{Finanzas para no financieros.}"
+subtitle: "Dinero, tiempo e información."
+author: "Dr. Martín Lozano \\texttt{https://mlozanoqf.github.io/}"
+date: "`r gsub('a\\. m\\.', 'a.m.', gsub('p\\. m\\.', 'p.m.', format(Sys.time(), '%d de %B de %Y, %I:%M %p')))`"
+output:
+  pdf_document:
+    latex_engine: xelatex
+    number_sections: true
+    highlight: tango
+header-includes:
+  - \usepackage{xcolor}
+  - \usepackage{fvextra}
+  - |
+      \DefineVerbatimEnvironment{Highlighting}{Verbatim}{
+        breaklines,
+        commandchars=\\\{\},
+        numbers=left,
+        numbersep=8pt,
+        fontsize=\small,
+        firstnumber=1,
+        xleftmargin=1.5em,
+        frame=none
+      }
+      % ← Estilo de los números de línea (más visibles)
+      \renewcommand{\theFancyVerbLine}{\textcolor{black}{\bfseries\small\arabic{FancyVerbLine}}}
+  - \usepackage{amssymb}
+  - \usepackage{amsmath}
+---
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+library(knitr)
+
+tabla <- matrix(
+  c("$\\checkmark$", "$\\times$", "$\\times$",
+    "$\\times$", "$\\times$", "$\\times$",
+    "$\\times$", "$\\times$", "$\\times$"),
+  nrow = 3, byrow = TRUE
+)
+colnames(tabla) <- c("Fundamental", "Intermedio", "Especializado")
+rownames(tabla) <- c("Finanzas", "Estadística", "R")
+
+kable(tabla, escape = FALSE, align = c("c","c","c"))
+
+```
+
+
+
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  class.source = "numberLines",   # activa numeración en todos los chunks con echo=TRUE
+  Sys.setlocale("LC_TIME", "es_ES.UTF-8")
+)
+```
+
+\newpage
+\Large 
+
+# Introducción.
+
+El reto en finanzas es tomar buenas decisiones hoy pensando en un futuro incierto.
+
+\begin{itemize}
+  \item \textbf{Finanzas} es el área de los negocios que se enfoca en cómo las personas, las empresas y el gobierno toman decisiones de inversión y financiamiento, es decir, sobre el uso del dinero a lo largo del tiempo, considerando el riesgo asociado a esas decisiones.
+  \item \textbf{¿Quién toma decisiones?} Personas, empresas y gobierno administran dinero y deciden cómo usarlo a lo largo del tiempo, enfrentando riesgo e incertidumbre al buscar cumplir sus objetivos (consumo, crecimiento, bienestar social).
+  \item \textbf{Inversión.} Decisión de usar dinero hoy para obtener beneficios futuros. El tiempo determina cuánto valdrá ese dinero y el riesgo radica en que los resultados pueden diferir de lo esperado. Personas invierten para su patrimonio, empresas para crecer y el gobierno para generar infraestructura y servicios.
+  \item \textbf{Financiamiento.} Decisión de obtener dinero hoy que deberá pagarse en el futuro. El tiempo define cuándo y cuánto se paga, y el riesgo está en la posibilidad de no poder cumplir con esos pagos o enfrentar mayores costos. Personas se financian para consumo o vivienda, empresas para operar o invertir, y el gobierno para gasto público o grandes proyectos.
+  \end{itemize}
+
+\textit{Comprar una casa, abrir un negocio o construir una carretera implica decidir cuánto dinero usar hoy, cuánto pedir prestado, por cuánto tiempo y con qué riesgos.}
+
+\newpage
+
+# Finanzas para no financieros.
+
+Las finanzas ayudan a tomar decisiones basadas en información y no solo en intuición. Comprender lo esencial te permite evaluar si una propuesta es viable, identificar riesgos y evitar errores que podrían resultar costosos, tanto en proyectos como en decisiones personales.
+
+\begin{itemize}
+  \item \textbf{Muchas decisiones implican asignar recursos.} Elegir entre opciones, priorizar actividades, planear proyectos o administrar un presupuesto son tareas comunes en casi cualquier rol, sin importar tu especialidad.
+\item \textbf{Facilita la comunicación con áreas financieras.} Conocer los conceptos básicos te permite explicar y justificar tus necesidades, interpretar información financiera esencial y colaborar de manera más efectiva en decisiones compartidas.
+\item \textbf{Mejora tu capacidad para evaluar alternativas.} Las finanzas te dan criterios para comparar opciones considerando beneficios, costos, tiempos y riesgos, lo que te permite tomar decisiones más sólidas y defenderlas con mejores argumentos.
+\item \textbf{Amplía tus oportunidades profesionales.} Quien entiende los fundamentos financieros puede liderar proyectos, participar en procesos estratégicos, gestionar presupuestos y proponer soluciones más completas. Es una ventaja en prácticamente cualquier área.
+\item \textbf{Aporta valor en tu vida personal.} Comprar una vivienda, manejar deudas, planear estudios o evaluar oportunidades de ahorro o inversión requiere entender cómo usar el dinero hoy pensando en el futuro.
+  \end{itemize}
+  
+\newpage
+
+# El valor del dinero en el tiempo.
+
+\begin{itemize}
+  \item \textbf{Recibir dinero ahora vs. recibirlo después.} Recibir dinero ahora te da liquidez, la capacidad inmediata de usar ese dinero para cubrir necesidades, aprovechar oportunidades o resolver problemas. Recibir dinero más adelante significa renunciar a esa liquidez. Puede que cuando llegue ya no sirva para lo que necesitabas, o que las condiciones hayan cambiado. Además, el futuro siempre trae incertidumbre.
+\item \textbf{Pagar dinero ahora vs. pagar dinero después.} Pagar ahora significa perder liquidez. Si pagas hoy, ese dinero ya no está disponible para nada más. Pagar después te permite conservar liquidez por más tiempo. Esa liquidez puede darte margen, estabilidad o flexibilidad. Pero pagar más adelante no es gratis, quien espera asume incertidumbre y renuncia a su propia liquidez. Por eso normalmente hay condiciones, costos o interés.
+  \end{itemize}
+
+\textit{En finanzas, recibir dinero antes vale más, y pagar después suele costar más. La razón es simple: la liquidez tiene valor y el tiempo trae incertidumbre.}
+
+\newpage
+
+# Tiempo, crédito e información.
+
+En los negocios, no todas las transacciones se pagan en el momento. Muchas operaciones no son spot, sino a crédito. Esto significa que puedes recibir un bien o un servicio hoy y pagarlo después. Esa posibilidad amplía la lógica financiera, porque te permite consumir, producir o invertir sin depender únicamente de la liquidez que tienes en este instante. En la práctica, estás usando flujos futuros para sostener decisiones presentes.
+
+Pero para decidir si te conviene pagar ahora o pagar después, o si puedes comprometer ingresos futuros, necesitas comparar alternativas. Y no puedes comparar alternativas si no sabes con claridad qué está ocurriendo hoy. Cuándo entra y cuándo sale el dinero, cuánta liquidez tienes y qué compromisos futuros ya aceptaste.
+
+Por eso, después de entender cómo el tiempo cambia el significado del dinero, el paso natural es revisar la calidad de la información con la que decides. 
+
+\newpage
+
+
+
+# La calidad de la información.
+
+\begin{itemize}
+\item \textbf{La calidad de tus decisiones depende de la calidad de tu información.} En finanzas, decidir no es adivinar ni irse por corazonadas; es comparar opciones considerando sus beneficios, costos, tiempos y riesgos. Para poder hacer esa comparación necesitas información confiable. Cuando la información es incompleta, desordenada o llega tarde, es complicado hacer una evaluación.
+\item \textbf{La información surge de registrar y medir.}
+Registrar significa anotar qué entra, qué sale y cuándo ocurre. Sin ese registro no puedes detectar patrones, anticipar problemas, evaluar alternativas ni justificar decisiones. Registrar convierte la experiencia en datos y los datos en criterios. Esa es la materia prima de cualquier análisis financiero, desde un simple presupuesto personal hasta la evaluación de un proyecto o la lectura de un estado financiero.
+\end{itemize}
+
+\textit{Registrar es lo que convierte decisiones intuitivas en decisiones fundamentadas.}
+
+\newpage
+
+
+# Ejemplos de por qué registrar y medir importa.
+
+\begin{itemize}
+\item \textbf{Persona.} Una persona siente que “no le alcanza”, pero al registrar descubre que el problema no es cuánto gasta, sino cuándo y en qué. El registro revela patrones que su memoria no veía y le permite ajustar decisiones con claridad.
+\item \textbf{Empresa.} Una empresa tiene ventas estables, pero falta de efectivo a mitad de mes. Al registrar y revisar sus flujos identifica desfases entre cobros y pagos, lo que le permite negociar plazos, planear mejor y evitar problemas de liquidez.
+\item \textbf{Gobierno.} Un gobierno desarrolla programas sin entender su costo real. Al registrar y sistematizar el gasto observa duplicidades y áreas ineficientes, información que le permite reasignar recursos y mejorar el impacto de sus políticas.
+\end{itemize}
+
+\newpage
+
+# Conclusión.
+
+Las finanzas nos ayudan a entender cómo las personas, las empresas y el gobierno toman decisiones cuando el dinero, el tiempo y la incertidumbre están involucrados. Reconocer cómo cambia el valor del dinero a través del tiempo y contar con información clara para evaluar alternativas permite tomar decisiones más responsables y con mejores resultados. Ese es el punto de partida para cualquier análisis financiero que hagas en el futuro.
+
+\newpage
+

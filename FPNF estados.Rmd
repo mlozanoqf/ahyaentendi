@@ -1,0 +1,80 @@
+---
+title: "\\textbf{Finanzas para no financieros.}"
+subtitle: "Introducción a los estados financieros y su análisis."
+author: "Dr. Martín Lozano \\texttt{https://mlozanoqf.github.io/}"
+date: "`r gsub('a\\. m\\.', 'a.m.', gsub('p\\. m\\.', 'p.m.', format(Sys.time(), '%d de %B de %Y, %I:%M %p')))`"
+output:
+  pdf_document:
+    latex_engine: xelatex
+    number_sections: true
+    highlight: tango
+header-includes:
+  - \usepackage{xcolor}
+  - \usepackage{fvextra}
+  - |
+      \DefineVerbatimEnvironment{Highlighting}{Verbatim}{
+        breaklines,
+        commandchars=\\\{\},
+        numbers=left,
+        numbersep=8pt,
+        fontsize=\small,
+        firstnumber=1,
+        xleftmargin=1.5em,
+        frame=none
+      }
+      % ← Estilo de los números de línea (más visibles)
+      \renewcommand{\theFancyVerbLine}{\textcolor{black}{\bfseries\small\arabic{FancyVerbLine}}}
+  - \usepackage{amssymb}
+  - \usepackage{amsmath}
+---
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+library(knitr)
+
+tabla <- matrix(
+  c("$\\checkmark$", "$\\times$", "$\\times$",
+    "$\\times$", "$\\times$", "$\\times$",
+    "$\\times$", "$\\times$", "$\\times$"),
+  nrow = 3, byrow = TRUE
+)
+colnames(tabla) <- c("Fundamental", "Intermedio", "Especializado")
+rownames(tabla) <- c("Finanzas", "Estadística", "R")
+
+kable(tabla, escape = FALSE, align = c("c","c","c"))
+
+```
+
+
+
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  class.source = "numberLines",   # activa numeración en todos los chunks con echo=TRUE
+  Sys.setlocale("LC_TIME", "es_ES.UTF-8")
+)
+```
+
+\newpage
+\Large 
+
+# Introducción al propósito de los estados financieros.
+
+\begin{itemize}
+  \item Los estados financieros resumen la situación económica de una empresa y permiten entender qué tiene, a quién le debe y qué tan bien está funcionando. Expresan información en forma de stock (balance general, una fotografía en un momento) y flujo (estado de resultados, el desempeño durante un periodo).
+  \item Son útiles para quienes analizan la empresa por dentro y por fuera. Bancos y proveedores quieren saber si la empresa puede cumplir sus compromisos, mientras que inversionistas buscan entender su capacidad para generar utilidades. El gobierno puede evaluar obligaciones fiscales y actividad económica, y el administrador financiero utiliza esta información para tomar decisiones sobre inversión, financiamiento y operación.
+  \end{itemize}
+
+
+\newpage
+
+
+
+# Conclusión.
+
+
+\newpage
+
