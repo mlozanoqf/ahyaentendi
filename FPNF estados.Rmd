@@ -91,7 +91,6 @@ knitr::opts_chunk$set(
 
 # Trade off: liquidez y rentabilidad.
 
-
 ```{r echo=FALSE, results='asis'}
 library(knitr)
 library(kableExtra)
@@ -153,18 +152,273 @@ if (knitr::is_latex_output()) {
 
   cat("</div>")
 }
-
 ```
 
-Empresa A: Tiene liquidez perfecta pero no invierte en activos productivos, así que no genera ventas ni utilidades.
+Empresa A: Tiene liquidez perfecta pero no invierte en activos productivos, así que no genera ventas ni utilidades. 
 
 Empresa B: Reduce liquidez para invertir en activos que producen ingresos. Tiene menos efectivo, pero mayor rentabilidad.
 
+\newpage
+
+# Trade off: apalancamiento y riesgo de crédito.
+
+```{r echo=FALSE, results='asis'}
+library(knitr)
+library(kableExtra)
+
+# Datos balance
+balance <- data.frame(
+  Concepto = c("Activos fijos", "Pasivos (deuda)", "Capital"),
+  A = c("$1,000", "$0", "$1,000"),
+  B = c("$1,000", "$500", "$500")
+)
+
+# Datos estado de resultados
+estado_resultados <- data.frame(
+  Concepto = c("Ventas", "Costos operativos", "Depreciación", "Intereses",
+               "Utilidad antes de impuestos", "Impuesto (30%)", "Utilidad neta"),
+  A = c("$1,000", "$400", "$100", "$0", "$500", "$150", "$350"),
+  B = c("$1,000", "$400", "$100", "$50", "$450", "$135", "$315")
+)
+
+# Datos ROE
+roe <- data.frame(
+  Concepto = c("Utilidad neta", "Capital", "ROE"),
+  A = c("$350", "$1,000", "35%"),
+  B = c("$315", "$500", "63%")
+)
+
+# Tablas
+tabla_balance <- kable(balance, align = c("l","r","r"), booktabs = TRUE) %>%
+  kable_styling(full_width = FALSE)
+
+tabla_er <- kable(estado_resultados, align = c("l","r","r"), booktabs = TRUE) %>%
+  kable_styling(full_width = FALSE)
+
+tabla_roe <- kable(roe, align = c("l","r","r"), booktabs = TRUE) %>%
+  kable_styling(full_width = FALSE)
+
+# Render según output
+if (knitr::is_latex_output()) {
+
+  # Dos columnas: Balance y Estado de resultados
+  cat("\\noindent\n")
+  cat("\\begin{minipage}[t]{0.49\\textwidth}\n")
+  cat("\\textbf{Balance general}\\\\[-0.2em]\n")
+  print(tabla_balance)
+  cat("\\end{minipage}\n")
+
+  cat("\\hfill\n")
+
+  cat("\\begin{minipage}[t]{0.49\\textwidth}\n")
+  cat("\\textbf{Estado de resultados}\\\\[-0.2em]\n")
+  print(tabla_er)
+  cat("\\end{minipage}\n")
+
+  cat("\\vspace{1em}\n")
+
+  # Tercera tabla centrada ROE
+  cat("\\begin{center}\n")
+  cat("\\textbf{Rendimiento sobre el capital (ROE)}\\\\[-0.2em]\n")
+  print(tabla_roe)
+  cat("\\end{center}\n")
+
+} else {
+
+  # HTML version
+  cat('<div style="display:flex; justify-content:space-between; width:100%;">')
+
+  cat('<div style="width:48%;">')
+  cat("<h3 style='margin-bottom:5px;'>Balance general</h3>")
+  print(tabla_balance)
+  cat("</div>")
+
+  cat('<div style="width:48%;">')
+  cat("<h3 style='margin-bottom:5px;'>Estado de resultados</h3>")
+  print(tabla_er)
+  cat("</div>")
+
+  cat("</div>")
+
+  cat("<h3>Rendimiento sobre el capital (ROE)</h3>")
+  print(tabla_roe)
+}
+
+```
+
+Con deuda, la empresa obtiene un beneficio fiscal porque los intereses reducen la base gravable, lo que eleva el rendimiento del capital. Pero al mismo tiempo asume riesgo de crédito, porque ahora tiene una obligación fija que debe pagar sin importar si las ventas bajan o si los costos suben.
 
 \newpage
+
+# Razones financieras básicas.
+
+```{r echo=FALSE, results='asis'}
+
+library(knitr)
+library(kableExtra)
+
+## ---------------------------
+## Datos de ejemplo: Empresa Año 1 vs Año 2
+## ---------------------------
+
+# Versión numérica para cálculos
+efectivo_1  <- 200; efectivo_2  <- 100
+cxc_1       <- 150; cxc_2       <- 200
+inv_1       <- 150; inv_2       <- 200
+afijos_1    <- 500; afijos_2    <- 600
+pasivo_1    <- 300; pasivo_2    <- 400
+capital_1   <- 700; capital_2   <- 700
+
+ventas_1    <- 1000; ventas_2   <- 1300
+costo_1     <- 600;  costo_2    <- 750
+gop_1       <- 200;  gop_2      <- 230
+gfin_1      <- 20;   gfin_2     <- 30
+uai_1       <- 180;  uai_2      <- 290      # utilidad antes de impuestos
+imp_1       <- 54;   imp_2      <- 87
+uneta_1     <- 126;  uneta_2    <- 203
+
+# Versión formateada para las tablas de estados
+balance <- data.frame(
+  Concepto = c("Efectivo", 
+               "Cuentas por cobrar", 
+               "Inventarios", 
+               "Activos fijos netos", 
+               "Pasivos (deuda)", 
+               "Capital contable"),
+  `Y1` = c("$200", "$150", "$150", "$500", "$300", "$700"),
+  `Y2` = c("$100", "$200", "$200", "$600", "$400", "$700")
+)
+
+estado_resultados <- data.frame(
+  Concepto = c("Ventas", 
+               "Costo de ventas", 
+               "Gastos operativos", 
+               "Gastos financieros", 
+               "Utilidad bruta", 
+               "Impuesto (30%)", 
+               "Utilidad neta"),
+  `Y1` = c("$1,000", "$600", "$200", "$20", "$180", "$54", "$126"),
+  `Y2` = c("$1,300", "$750", "$230", "$30", "$290", "$87", "$203")
+)
+
+## ---------------------------
+## Tablas de estados con kable
+## ---------------------------
+
+tabla_balance <- kable(
+  balance,
+  align = c("l", "r", "r"),
+  booktabs = TRUE
+) %>%
+  kable_styling(full_width = FALSE)
+
+tabla_er <- kable(
+  estado_resultados,
+  align = c("l", "r", "r"),
+  booktabs = TRUE
+) %>%
+  kable_styling(full_width = FALSE)
+
+if (knitr::is_latex_output()) {
+
+  cat("\\noindent\n")
+  cat("\\begin{minipage}[t]{0.49\\textwidth}\n")
+  cat("{\\bfseries Balance general}\\\\[-0.2em]\n")
+  print(tabla_balance)
+  cat("\\end{minipage}\n")
+  
+  cat("\\hfill\n")
+  
+  cat("\\begin{minipage}[t]{0.49\\textwidth}\n")
+  cat("{\\bfseries Estado de resultados}\\\\[-0.2em]\n")
+  print(tabla_er)
+  cat("\\end{minipage}\n")
+  
+} else {
+  
+  cat('<div style="display:flex; justify-content:space-between; width:100%;">')
+  
+  cat('<div style="width:48%;">')
+  cat("<h3 style='margin-bottom:5px;'>Balance general</h3>")
+  print(tabla_balance)
+  cat("</div>")
+  
+  cat('<div style="width:48%;">')
+  cat("<h3 style='margin-bottom:5px;'>Estado de resultados</h3>")
+  print(tabla_er)
+  cat("</div>")
+  
+  cat("</div>")
+}
+
+## ---------------------------
+## Cálculo de razones financieras
+## ---------------------------
+
+# Activo circulante
+ac_1 <- efectivo_1 + cxc_1 + inv_1
+ac_2 <- efectivo_2 + cxc_2 + inv_2
+
+# Liquidez: razón circulante
+liq_1 <- ac_1 / pasivo_1
+liq_2 <- ac_2 / pasivo_2
+
+# Endeudamiento: Pasivo / (Pasivo + Capital)
+endeuda_1 <- pasivo_1 / (pasivo_1 + capital_1)
+endeuda_2 <- pasivo_2 / (pasivo_2 + capital_2)
+
+# Rentabilidad: margen neto y ROE
+margen_1 <- uneta_1 / ventas_1
+margen_2 <- uneta_2 / ventas_2
+
+roe_1 <- uneta_1 / capital_1
+roe_2 <- uneta_2 / capital_2
+
+razones <- data.frame(
+  `Razón` = c("Liquidez corriente (AC / Pasivo)", 
+            "Endeudamiento (Pasivo / Activo)", 
+            "Margen neto (Utilidad neta / Ventas)", 
+            "ROE (Utilidad neta / Capital)"),
+  `Y1` = c(
+    sprintf("%.2f", liq_1),
+    sprintf("%.2f", endeuda_1),
+    sprintf("%.1f%%", margen_1 * 100),
+    sprintf("%.1f%%", roe_1 * 100)
+  ),
+  `Y2` = c(
+    sprintf("%.2f", liq_2),
+    sprintf("%.2f", endeuda_2),
+    sprintf("%.1f%%", margen_2 * 100),
+    sprintf("%.1f%%", roe_2 * 100)
+  )
+)
+
+tabla_razones <- kable(
+  razones,
+  align = c("l", "r", "r"),
+  booktabs = TRUE
+) %>%
+  kable_styling(full_width = FALSE)
+
+tabla_razones
+
+```
+
+En un año, la empresa mejora ventas y utilidades, pero esa evolución también cambia su estructura financiera. Aumenta su endeudamiento y su inversión en activos, lo que reduce la liquidez, pero fortalece su capacidad operativa. Al mismo tiempo, la rentabilidad mejora porque los activos ahora se usan de forma más productiva. En conjunto, las razones financieras muestran una empresa que crece y se vuelve más eficiente, aunque con menor liquidez y mayor compromiso financiero.
+
+\newpage
+
 
 # Conclusión.
 
+\begin{itemize}
+\item Ningún indicador por sí solo describe la salud de una empresa. La liquidez, la rentabilidad y el endeudamiento deben leerse como partes de una misma historia financiera. Un cambio en uno casi siempre implica ajustes o consecuencias en los otros.
+\item Las empresas que crecen suelen usar más activos, asumir más compromisos y modificar su estructura de financiamiento. Estas decisiones pueden reducir liquidez en el corto plazo, pero fortalecer su capacidad para generar ventas y utilidades en el futuro.
+\item Las razones financieras permiten evaluar si estos cambios son coherentes. Mejoras en ventas o utilidades deben reflejarse en un uso más productivo de los activos y en un nivel de endeudamiento que la empresa pueda sostener sin comprometer su estabilidad.
+\item El análisis integrado ayuda a distinguir si la empresa está en un proceso sano de expansión, si está asumiendo riesgos innecesarios o si enfrenta tensiones entre liquidez, operación y financiamiento.
+\end{itemize}
 
 \newpage
+
+
 

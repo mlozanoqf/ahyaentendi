@@ -1,0 +1,94 @@
+---
+title: "\\textbf{Finanzas para no financieros.}"
+subtitle: "Valor presente y valor futuro."
+author: "Dr. Martín Lozano \\texttt{https://mlozanoqf.github.io/}"
+date: "`r gsub('a\\. m\\.', 'a.m.', gsub('p\\. m\\.', 'p.m.', format(Sys.time(), '%d de %B de %Y, %I:%M %p')))`"
+output:
+  pdf_document:
+    latex_engine: xelatex
+    number_sections: true
+    highlight: tango
+header-includes:
+  - \usepackage{xcolor}
+  - \usepackage{fvextra}
+  - |
+      \DefineVerbatimEnvironment{Highlighting}{Verbatim}{
+        breaklines,
+        commandchars=\\\{\},
+        numbers=left,
+        numbersep=8pt,
+        fontsize=\small,
+        firstnumber=1,
+        xleftmargin=1.5em,
+        frame=none
+      }
+      % ← Estilo de los números de línea (más visibles)
+      \renewcommand{\theFancyVerbLine}{\textcolor{black}{\bfseries\small\arabic{FancyVerbLine}}}
+  - \usepackage{amssymb}
+  - \usepackage{amsmath}
+---
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+library(knitr)
+
+tabla <- matrix(
+  c("$\\checkmark$", "$\\times$", "$\\times$",
+    "$\\times$", "$\\times$", "$\\times$",
+    "$\\times$", "$\\times$", "$\\times$"),
+  nrow = 3, byrow = TRUE
+)
+colnames(tabla) <- c("Fundamental", "Intermedio", "Especializado")
+rownames(tabla) <- c("Finanzas", "Estadística", "R")
+
+kable(tabla, escape = FALSE, align = c("c","c","c"))
+
+```
+
+
+
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  class.source = "numberLines",   # activa numeración en todos los chunks con echo=TRUE
+  Sys.setlocale("LC_TIME", "es_ES.UTF-8")
+)
+```
+
+\newpage
+\Large 
+
+# ¿Por qué necesitamos comparar dinero en distintos momentos?
+
+\begin{itemize}
+\item En finanzas no basta con saber cuánto dinero recibes o pagas, sino también cuándo ocurre. El tiempo cambia lo que puedes hacer con el dinero, las oportunidades que puedes aprovechar y los riesgos que enfrentas.
+\item Para tomar decisiones de inversión, financiamiento o evaluación de proyectos necesitas comparar alternativas que ocurren en distintos momentos. Para eso se requiere llevar todos los montos al mismo punto en el tiempo, ya sea al presente o al futuro.
+\item El valor presente y el valor futuro son herramientas que permiten expresar dinero de diferentes fechas en unidades comparables. Con esto puedes decidir si una alternativa conviene más que otra y entender el efecto del tiempo y del costo de oportunidad.
+\end{itemize}
+
+\newpage
+
+# La tasa de interés como precio del dinero.
+
+\begin{itemize}
+\item La tasa de interés es el precio que compensa a quien entrega dinero hoy y renuncia a su liquidez durante un periodo. Quien presta su dinero asume que no podrá usarlo para otras necesidades, por lo que exige un rendimiento a cambio de esa renuncia temporal.
+\item Quien recibe dinero hoy está obteniendo liquidez inmediata que no tenía. Esa ventaja tiene un costo, que se expresa como la tasa de interés que deberá pagar más adelante.
+\item La tasa de interés equilibra estas dos posiciones: un incentivo para quien entrega dinero y un costo para quien lo recibe.
+\item En la práctica, todas las comparaciones entre valores presentes y valores futuros se hacen usando una tasa de interés, porque es la forma de reconocer el valor del tiempo, la liquidez sacrificada y los incentivos económicos de ambas partes.
+\end{itemize}
+
+\newpage
+
+# Capitalización y descuento: cómo interactúan el tiempo y la tasa de interés.
+
+\begin{itemize}
+\item La tasa de interés transforma el valor del dinero a lo largo del tiempo. Cuando llevamos un monto hacia adelante, estamos aplicando capitalización. Cuando lo traemos al presente, estamos aplicando descuento.
+\item Capitalizar significa calcular cuánto valdrá en el futuro un dinero que tienes hoy. Refleja el rendimiento que exige quien entrega su dinero y renuncia a usarlo durante un periodo.
+\item Descontar significa calcular cuánto vale hoy un dinero que recibirás en el futuro. Refleja el costo de oportunidad y la compensación necesaria para esperar y asumir incertidumbre.
+\item Ambos procesos usan la misma tasa de interés. La única diferencia es la dirección en el tiempo: avanzar para obtener un valor futuro, retroceder para obtener un valor presente.
+\end{itemize}
+
+\newpage
