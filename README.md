@@ -12,9 +12,12 @@ https://www.youtube.com/@ahyaentendi
 1. Introducción a las velas japonesas en trading.
 1. Estrategias de cobertura y especulación usando opciones financieras.
 1. Carteras de inversión, una introducción al diseño y análisis (próximamente). `port`
-1. Finanzas para no financieros. Dinero, tiempo e información (próximamente). `FPNF-dti`
-1. Finanzas para no financieros. Introducción a los estados financieros y su análisis (próximamente). `FPNF-estados`
-1. Finanzas para no financieros. Valor presente y valor futuro (próximamente). `FPNF-vpvf`
+
+## Finanzas para no financieros.
+
+1. Dinero, tiempo e información (próximamente). `FPNF-dti`
+1. Introducción a los estados financieros y su análisis (próximamente). `FPNF-estados`
+1. Valor presente y valor futuro (próximamente). `FPNF-vpvf`
 
 ## Shorts.
 

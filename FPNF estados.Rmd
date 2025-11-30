@@ -1,6 +1,6 @@
 ---
-title: "\\textbf{Finanzas para no financieros.}"
-subtitle: "Introducción a los estados financieros y su análisis."
+title: "\\textbf{Introducción a los estados financieros y su análisis.}"
+subtitle: "Finanzas para no financieros."
 author: "Dr. Martín Lozano \\texttt{https://mlozanoqf.github.io/}"
 date: "`r gsub('a\\. m\\.', 'a.m.', gsub('p\\. m\\.', 'p.m.', format(Sys.time(), '%d de %B de %Y, %I:%M %p')))`"
 output:

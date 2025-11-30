@@ -1,6 +1,6 @@
 ---
-title: "\\textbf{Finanzas para no financieros.}"
-subtitle: "Valor presente y valor futuro."
+title: "\\textbf{Valor presente y valor futuro.}"
+subtitle: "Finanzas para no financieros."
 author: "Dr. Martín Lozano \\texttt{https://mlozanoqf.github.io/}"
 date: "`r gsub('a\\. m\\.', 'a.m.', gsub('p\\. m\\.', 'p.m.', format(Sys.time(), '%d de %B de %Y, %I:%M %p')))`"
 output:
@@ -90,5 +90,85 @@ knitr::opts_chunk$set(
 \item Descontar significa calcular cuánto vale hoy un dinero que recibirás en el futuro. Refleja el costo de oportunidad y la compensación necesaria para esperar y asumir incertidumbre.
 \item Ambos procesos usan la misma tasa de interés. La única diferencia es la dirección en el tiempo: avanzar para obtener un valor futuro, retroceder para obtener un valor presente.
 \end{itemize}
+
+\newpage
+
+# Comparar alternativas con valor presente y valor futuro.
+
+Quieres comprar un producto que cuesta \$1,000 hoy y tienes una alternativa de pago: desembolsar \$1,150 dentro de un año. Para decidir financieramente qué opción es más conveniente, necesitas comparar ambos montos en el mismo punto del tiempo. La tasa de interés anual (el costo de renunciar a liquidez durante un año) es del 10\%.
+
+\begin{itemize}
+\item Método 1: Usar valor presente $VP = \dfrac{VF}{(1+r)^n}$.
+
+$VP = \dfrac{1{,}150}{(1+0.10)^1} \rightarrow \dfrac{1{,}150}{1.10} \rightarrow 1{,}045.45$. Pagar \$1,150 en un año equivale a pagar \$1,045.45 hoy. Como \$1,045.45 es mayor que \$1,000, financieramente conviene pagar hoy.
+
+\item Método 2: Usar valor futuro $VF = VP (1+r)^n$.
+
+$VF_A = 1{,}000(1+0.10) \rightarrow 1{,}100$. Pagar hoy equivale a pagar \$1,100 dentro de un año, que es menor que los \$1,150 del pago diferido. Nuevamente, conviene pagar hoy.
+
+\item Ambos métodos llevan a la misma conclusión financiera porque son dos formas equivalentes de comparar dinero en distintos momentos usando la tasa de interés y el tiempo.
+
+\item Una persona podría elegir pagar después por razones no financieras. Pero desde un criterio estrictamente financiero, la decisión correcta es la que minimiza el valor presente del costo.
+
+\end{itemize}
+
+\newpage
+
+# Evaluar una inversión con flujos irregulares.
+
+Quieres saber si conviene comprar una máquina que reduce el consumo de energía. La inversión inicial es de \$80,000 hoy y se espera que genere ahorros durante 4 años de vida útil, aunque esos ahorros no serán iguales cada año.
+
+\begin{center}
+\begin{tabular}{lrr}
+\toprule
+Año & Flujo de efectivo & Descripción \\
+\midrule
+0 & -\$80{,}000 & Inversión inicial \\
+1 & +\$25{,}000 & Ahorro en energía \\
+2 & +\$28{,}000 & Ahorro en energía \\
+3 & +\$30{,}000 & Ahorro en energía \\
+4 & +\$32{,}000 & Ahorro en energía \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Supón que la tasa de descuento apropiada para este tipo de proyecto es del 10\% anual. La pregunta es si el valor presente de los ahorros futuros justifica pagar hoy los \$80,000.
+
+\begin{itemize}
+\item Fórmula general del valor presente de una serie de flujos irregulares:
+
+$VP = \displaystyle \sum_{t=0}^{n} \dfrac{F_t}{(1+r)^t}$, donde $F_t$ es el flujo en el año $t$, $r$ es la tasa de descuento y $n$ es el último año del proyecto.
+
+\item Sustitución con los flujos de la máquina:
+
+$VP = \dfrac{-80{,}000}{(1+0.10)^0} + \dfrac{25{,}000}{(1+0.10)^1} + \dfrac{28{,}000}{(1+0.10)^2} + \dfrac{30{,}000}{(1+0.10)^3} + \dfrac{32{,}000}{(1+0.10)^4}$.
+
+$VP = -80{,}000.00 + 22{,}727.27 + 23{,}140.50 + 22{,}539.44 + 21{,}856.43$.
+
+\item El valor presente neto es positivo \$10{,}263.64, lo que significa que la inversión en la máquina genera más ahorro que el costo de desembolsar \$80{,}000 hoy. El costo inicial se justifica con los beneficios futuros descontados.
+\end{itemize}
+
+\newpage
+
+# El tiempo y la tasa de interés como mecanismo para mover recursos y evaluar decisiones.
+
+\begin{itemize}
+
+\item El valor presente y el valor futuro funcionan por la interacción entre tiempo y tasa de interés, que permiten expresar dinero de momentos distintos en unidades equivalentes para compararlo correctamente.
+
+\item Este mecanismo permite mover recursos entre hoy y el futuro mediante financiamiento o ahorro, ajustando cuándo gastas o pagas según tus necesidades y prioridades.
+
+\item Evaluar una inversión con flujos irregulares significa comparar una salida de dinero hoy con beneficios futuros que no son uniformes. El valor presente permite traer todos esos montos al mismo punto en el tiempo y ver si los ahorros justifican la inversión inicial.
+\item Al descontar cada flujo según el año en que ocurre, el análisis revela si la suma de los beneficios futuros supera el costo inicial. Un valor presente neto positivo indica que el proyecto crea valor financiero.
+
+\item Comprender cómo el tiempo y la tasa de interés modifican el valor del dinero te ayuda a evaluar alternativas financieras, administrar recursos y planear decisiones de manera estratégica.
+
+\end{itemize}
+
+\newpage
+
+# Conclusión.
+
+Comprender cómo interactúan el tiempo, la tasa de interés y el valor del dinero te da una forma distinta de ver tus decisiones: revela que cada elección financiera implica mover recursos entre hoy y el futuro. Ese cambio de perspectiva permite evaluar alternativas con mayor claridad y reconocer qué estás ganando, qué estás sacrificando y por qué. En esencia, conocer estas herramientas te permite tomar decisiones más conscientes y alineadas con tus objetivos.
 
 \newpage
