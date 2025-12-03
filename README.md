@@ -29,4 +29,5 @@ https://www.youtube.com/@ahyaentendi
 1. Economía (próximamente).
 1. Costos en contabilidad, finanzas y economía (próximamente).
 1. Ventas en corto (próximamente).
+1. La paradoja del rendimiento máximo (próximamente).
 
