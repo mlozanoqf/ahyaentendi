@@ -61,7 +61,7 @@ knitr::opts_chunk$set(
 \newpage
 \Large 
 
-# Introducción al propósito de los estados financieros.
+# Los estados financieros.
 
 \begin{itemize}
   \item Los estados financieros resumen la situación económica de una empresa y permiten entender qué tiene, a quién le debe y qué tan bien está funcionando. Expresan información en forma de stock, como una fotografía en un momento y en forma de flujo, el desempeño durante un periodo.
@@ -154,9 +154,13 @@ if (knitr::is_latex_output()) {
 }
 ```
 
-Empresa A: Tiene liquidez perfecta pero no invierte en activos productivos, así que no genera ventas ni utilidades. 
+\begin{flushleft}
+\begin{minipage}{0.75\textwidth}
+\textbf{Empresa A}: Tiene liquidez perfecta pero no invierte en activos productivos, así que no genera ventas ni utilidades. 
 
-Empresa B: Reduce liquidez para invertir en activos que producen ingresos. Tiene menos efectivo, pero mayor rentabilidad.
+\textbf{Empresa B}: Reduce liquidez para invertir en activos que producen ingresos. Tiene menos efectivo, pero mayor rentabilidad.
+\end{minipage}
+\end{flushleft}
 
 \newpage
 
@@ -168,14 +172,14 @@ library(kableExtra)
 
 # Datos balance
 balance <- data.frame(
-  Concepto = c("Activos fijos", "Pasivos (deuda)", "Capital"),
+  Balance_General = c("Activos fijos", "Pasivos (deuda)", "Capital"),
   A = c("$1,000", "$0", "$1,000"),
   B = c("$1,000", "$500", "$500")
 )
 
 # Datos estado de resultados
 estado_resultados <- data.frame(
-  Concepto = c("Ventas", "Costos operativos", "Depreciación", "Intereses",
+  Estado_de_Resultados = c("Ventas", "Costos operativos", "Depreciación", "Intereses",
                "Utilidad antes de impuestos", "Impuesto (30%)", "Utilidad neta"),
   A = c("$1,000", "$400", "$100", "$0", "$500", "$150", "$350"),
   B = c("$1,000", "$400", "$100", "$50", "$450", "$135", "$315")
@@ -183,9 +187,9 @@ estado_resultados <- data.frame(
 
 # Datos ROE
 roe <- data.frame(
-  Concepto = c("Utilidad neta", "Capital", "ROE"),
-  A = c("$350", "$1,000", "35%"),
-  B = c("$315", "$500", "63%")
+  Análisis = c("Utilidad neta", "Capital", "ROE"),
+  Sin_deuda = c("$350", "$1,000", "35%"),
+  Con_deuda = c("$315", "$500", "63%")
 )
 
 # Tablas
@@ -204,25 +208,26 @@ if (knitr::is_latex_output()) {
   # Dos columnas: Balance y Estado de resultados
   cat("\\noindent\n")
   cat("\\begin{minipage}[t]{0.49\\textwidth}\n")
-  cat("\\textbf{Balance general}\\\\[-0.2em]\n")
+#  cat("\\textbf{Balance general}\\\\[-0.2em]\n")
   print(tabla_balance)
   cat("\\end{minipage}\n")
 
   cat("\\hfill\n")
 
   cat("\\begin{minipage}[t]{0.49\\textwidth}\n")
-  cat("\\textbf{Estado de resultados}\\\\[-0.2em]\n")
+#  cat("\\textbf{Estado de resultados}\\\\[-0.2em]\n")
   print(tabla_er)
   cat("\\end{minipage}\n")
 
   cat("\\vspace{1em}\n")
 
-  # Tercera tabla centrada ROE
-  cat("\\begin{center}\n")
-  cat("\\textbf{Rendimiento sobre el capital (ROE)}\\\\[-0.2em]\n")
-  print(tabla_roe)
-  cat("\\end{center}\n")
 
+    cat("\\noindent\n")
+  cat("\\begin{minipage}[t]{0.49\\textwidth}\n")
+#  cat("\\textbf{Rendimiento sobre el capital}\\\\[-0.2em]\n")
+  print(tabla_roe)
+  cat("\\end{minipage}\n")
+  
 } else {
 
   # HTML version
@@ -246,7 +251,11 @@ if (knitr::is_latex_output()) {
 
 ```
 
+\begin{flushleft}
+\begin{minipage}{0.75\textwidth}
 Con deuda, la empresa obtiene un beneficio fiscal porque los intereses reducen la base gravable, lo que eleva el rendimiento del capital. Pero al mismo tiempo asume riesgo de crédito, porque ahora tiene una obligación fija que debe pagar sin importar si las ventas bajan o si los costos suben.
+\end{minipage}
+\end{flushleft}
 
 \newpage
 
@@ -279,7 +288,7 @@ uneta_1     <- 126;  uneta_2    <- 203
 
 # Versión formateada para las tablas de estados
 balance <- data.frame(
-  Concepto = c("Efectivo", 
+  Balance_General = c("Efectivo", 
                "Cuentas por cobrar", 
                "Inventarios", 
                "Activos fijos netos", 
@@ -290,7 +299,7 @@ balance <- data.frame(
 )
 
 estado_resultados <- data.frame(
-  Concepto = c("Ventas", 
+  Estado_de_Resultados = c("Ventas", 
                "Costo de ventas", 
                "Gastos operativos", 
                "Gastos financieros", 
@@ -323,14 +332,14 @@ if (knitr::is_latex_output()) {
 
   cat("\\noindent\n")
   cat("\\begin{minipage}[t]{0.49\\textwidth}\n")
-  cat("{\\bfseries Balance general}\\\\[-0.2em]\n")
+#  cat("{\\bfseries Balance general}\\\\[-0.2em]\n")
   print(tabla_balance)
   cat("\\end{minipage}\n")
   
   cat("\\hfill\n")
   
   cat("\\begin{minipage}[t]{0.49\\textwidth}\n")
-  cat("{\\bfseries Estado de resultados}\\\\[-0.2em]\n")
+#  cat("{\\bfseries Estado de resultados}\\\\[-0.2em]\n")
   print(tabla_er)
   cat("\\end{minipage}\n")
   
@@ -398,13 +407,19 @@ tabla_razones <- kable(
   align = c("l", "r", "r"),
   booktabs = TRUE
 ) %>%
-  kable_styling(full_width = FALSE)
+  kable_styling(full_width = FALSE,
+    position = "left")
 
 tabla_razones
 
 ```
 
+\begin{flushleft}
+\begin{minipage}{0.75\textwidth}
 En un año, la empresa mejora ventas y utilidades, pero esa evolución también cambia su estructura financiera. Aumenta su endeudamiento y su inversión en activos, lo que reduce la liquidez, pero fortalece su capacidad operativa. Al mismo tiempo, la rentabilidad mejora porque los activos ahora se usan de forma más productiva. En conjunto, las razones financieras muestran una empresa que crece y se vuelve más eficiente, aunque con menor liquidez y mayor compromiso financiero.
+\end{minipage}
+\end{flushleft}
+
 
 \newpage
 

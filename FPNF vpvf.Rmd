@@ -95,12 +95,12 @@ knitr::opts_chunk$set(
 
 # Comparar alternativas con valor presente y valor futuro.
 
-Quieres comprar un producto que cuesta \$1,000 hoy y tienes una alternativa de pago: desembolsar \$1,150 dentro de un año. Para decidir financieramente qué opción es más conveniente, necesitas comparar ambos montos en el mismo punto del tiempo. La tasa de interés anual (el costo de renunciar a liquidez durante un año) es del 10\%.
+Quieres comprar un producto. Puedes pagar \$1,000 hoy o \$1,150 dentro de un año. Para decidir qué opción es más conveniente, necesitas comparar ambos montos en el mismo punto del tiempo. La tasa de interés anual (el costo de renunciar a liquidez durante un año) es del 10\%.
 
 \begin{itemize}
 \item Método 1: Usar valor presente $VP = \dfrac{VF}{(1+r)^n}$.
 
-$VP = \dfrac{1{,}150}{(1+0.10)^1} \rightarrow \dfrac{1{,}150}{1.10} \rightarrow 1{,}045.45$. Pagar \$1,150 en un año equivale a pagar \$1,045.45 hoy. Como \$1,045.45 es mayor que \$1,000, financieramente conviene pagar hoy.
+$VP = \dfrac{1{,}150}{(1+0.10)^1} \rightarrow \dfrac{1{,}150}{1.10} \rightarrow 1{,}045.45$. Pagar \$1,150 en un año equivale a pagar \$1,045.45 hoy. Como \$1,045.45 es mayor que \$1,000, conviene pagar hoy.
 
 \item Método 2: Usar valor futuro $VF = VP (1+r)^n$.
 
