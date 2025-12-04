@@ -66,8 +66,8 @@ knitr::opts_chunk$set(
 \begin{itemize}
   \item Conceptos fundamentales del análisis riesgo–rendimiento.
   \item Explicar la frontera media–varianza, destacando cómo se obtiene mediante métodos analíticos y numéricos.
-  \item Construir y evaluar portafolios usando datos reales.
-  \item Cómo los pesos óptimos cambian cuando se permiten o restringen las ventas en corto.
+  \item Construir y evaluar portafolios ingenuos, de mínima varianza, de 2 y 10 activos usando datos reales.
+  \item Análisis cuando se permiten o restringen las ventas en corto.
   \end{itemize}
 
 \newpage
@@ -308,7 +308,7 @@ ggplot(plot_data, aes(date, index_level,
   scale_color_manual(values = color_values, limits = last_vals$symbol) +
   scale_x_date(expand = expansion(mult = c(0, 0.1))) +
   scale_y_continuous(labels = dollar_format(prefix = "$", accuracy = 0.1)) +
-  labs(title = "Rendimiento acumulado, 2 activos y una cartera.", 
+  labs(title = "Rendimiento acumulado, 2 activos y una cartera ingenua.", 
        y = "Rendimiento acumulado", 
        x = NULL, color = "Series") +
   theme_minimal() +
@@ -457,7 +457,8 @@ print(w_star)
 
 # Frontera media-varianza: 2 activos, cartera MV.
 
-$ER_{port} = \sum_{i=1}^n w_i \mu_i$,
+$ER_{port} = \sum_{i=1}^n w_i \mu_i$.
+
 $\sigma_{port} = \sqrt{\mathbf{w}^\top \Sigma \mathbf{w}}$.
 
 ```{r}
@@ -711,7 +712,7 @@ portfolio_cum <- imap_dfr(weights_specs,
                        limits = series_levels, drop = FALSE) +
     scale_x_date(expand = expansion(mult = c(0, 0.12))) +
     scale_y_continuous(labels = dollar_format(prefix = "$")) +
-    labs(title = "Rendimiento acumulado.",
+    labs(title = "Rendimiento acumulado, todas las carteras.",
          y = "Rendimiento acumulado", x = NULL, color = "Series") +
     theme_minimal() +
     theme(legend.position = c(0, 1), legend.justification = c(0, 1),
