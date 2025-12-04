@@ -1,6 +1,6 @@
 ---
 title: "\\textbf{Carteras de inversión.}"
-subtitle: "Una introducción al diseño y análisis."
+subtitle: "Introducción al diseño y análisis."
 author: "Dr. Martín Lozano \\texttt{https://mlozanoqf.github.io/}"
 date: "`r gsub('a\\. m\\.', 'a.m.', gsub('p\\. m\\.', 'p.m.', format(Sys.time(), '%d de %B de %Y, %I:%M %p')))`"
 output:
@@ -138,8 +138,7 @@ asset_stats <- function(data) {
     group_by(symbol) |>
     summarise(ER = mean(monthly_return, na.rm = TRUE),
               SD = sd(monthly_return, na.rm = TRUE),
-              SR = ER / SD,
-              .groups = "drop")}
+              SR = ER / SD, .groups = "drop")}
 
 # Función: construcción de rendimiento acumulado por activo
 
@@ -179,10 +178,8 @@ portfolio_stats <- function(data, weights, label) {
     group_by(date) |>
     summarise(portfolio_return = sum(monthly_return * weights[symbol]), .groups = "drop")
     
-tibble(symbol = label,
-       ER = mean(pr$portfolio_return, na.rm = TRUE),
-       SD  = sd(pr$portfolio_return, na.rm = TRUE),
-       SR = ER / SD)}
+tibble(symbol = label, ER = mean(pr$portfolio_return, na.rm = TRUE),
+       SD  = sd(pr$portfolio_return, na.rm = TRUE), SR = ER / SD)}
 
 # Conversión de retornos a formato ancho y matriz
 
@@ -201,8 +198,7 @@ mu_vec_all  <- colMeans(returns_mat_all, na.rm = TRUE)
 cov_mat_all <- cov(returns_mat_all, use = "pairwise.complete.obs")
 n_assets <- length(mu_vec_all)
 
-stats_all <- tibble(symbol = names(mu_vec_all),
-                    ER = mu_vec_all,
+stats_all <- tibble(symbol = names(mu_vec_all), ER = mu_vec_all,
                     SD = apply(returns_mat_all, 2, sd, na.rm = TRUE))
 
 color_values_all <- setNames(scales::hue_pal()(length(mu_vec_all)),
@@ -226,6 +222,8 @@ print(round(corr_mat, 2), quote = FALSE, right = TRUE)
 
 # Pares de correlaciones mínimas.
 
+$\sigma^2_{port} = w_A^2 \sigma_A^2 + w_B^2 \sigma_B^2 + 2 w_A w_B \sigma_A \sigma_B \rho_{A,B}$.
+
 ```{r}
 lowest_pairs <- corr_mat |>
   as_tibble(rownames = "symbol_i") |>
@@ -246,15 +244,15 @@ gis_snps_wide <- monthly_returns |>
   filter(symbol %in% c("GIS", "SNPS")) |>
   select(date, symbol, monthly_return) |>
   pivot_wider(names_from = symbol, values_from = monthly_return) |>
-  drop_na()   # por si falta algún dato en alguna fecha
+  drop_na()   
 
 # Scatter GIS (eje X) vs SNPS (eje Y)
 ggplot(gis_snps_wide, aes(x = GIS, y = SNPS)) +
-  geom_point(size = 2, alpha = 0.7) +
+  geom_point(size = 3, alpha = 0.5, col = "red") +
   geom_hline(yintercept = 0, linetype = "dashed") +
   geom_vline(xintercept = 0, linetype = "dashed") +
-  scale_x_continuous(labels = percent_format(accuracy = 0.1)) +
-  scale_y_continuous(labels = percent_format(accuracy = 0.1)) +
+  scale_x_continuous(labels = percent_format(accuracy = 1)) +
+  scale_y_continuous(labels = percent_format(accuracy = 1)) +
   labs(title = "Rendimientos mensuales: GIS vs SNPS.",
     x = "Rendimiento mensual GIS", y = "Rendimiento mensual SNPS") +
   geom_smooth(method = "lm", se = FALSE) +
@@ -309,9 +307,10 @@ ggplot(plot_data, aes(date, index_level,
             hjust = -0.05, vjust = 0.5, show.legend = FALSE) +
   scale_color_manual(values = color_values, limits = last_vals$symbol) +
   scale_x_date(expand = expansion(mult = c(0, 0.1))) +
-  scale_y_continuous(labels = dollar_format(prefix = "$")) +
-  labs(title = "Rendimiento acumulado.", 
-       y = "Rendimiento acumulado", x = NULL, color = "Series") +
+  scale_y_continuous(labels = dollar_format(prefix = "$", accuracy = 0.1)) +
+  labs(title = "Rendimiento acumulado, 2 activos y una cartera.", 
+       y = "Rendimiento acumulado", 
+       x = NULL, color = "Series") +
   theme_minimal() +
   theme(legend.position = c(0,1), legend.justification = c(0,1),
         legend.background = element_rect(fill = alpha("white", 0.6), color = NA))
@@ -370,9 +369,9 @@ ggplot() +
   geom_path(data = frontier_data, aes(SD, ER), color = "grey", linewidth = 1) +
   geom_point(data = mean_var_points, aes(SD, ER, color = symbol), size = 5) +
   scale_color_manual(values = color_values, limits = levels(mean_var_points$symbol)) +
-    scale_x_continuous(limits = c(0.025, 0.18), labels = percent_format(accuracy = 0.1)) +
+    scale_x_continuous(limits = c(0.025, 0.18), labels = percent_format(accuracy = 1)) +
   scale_y_continuous(limits = c(min(mu_vec_all), max(mu_vec_all)), 
-                     labels = percent_format(accuracy = 0.1)) +
+                     labels = percent_format(accuracy = 1)) +
   labs(title = "Frontera media-varianza, 2 activos.",
        x = "Volatilidad", y = "Rendimiento esperado", color = "Series") +
   theme_minimal() +
@@ -478,10 +477,10 @@ ggplot() +
   geom_path(data = frontier_data, aes(SD, ER), color = "grey", linewidth = 1) +
   geom_point(data = mean_var_points_ext, aes(SD, ER, color = symbol), size = 5) +
   scale_color_manual(values = color_values_ext, limits = levels(mean_var_points_ext$symbol)) +
-  scale_x_continuous(limits = c(0.025, 0.18), labels = percent_format(accuracy = 0.1)) +
+  scale_x_continuous(limits = c(0.025, 0.18), labels = percent_format(accuracy = 1)) +
   scale_y_continuous(limits = c(min(mu_vec_all), max(mu_vec_all)), 
-                     labels = percent_format(accuracy = 0.1)) +
-  labs(title = "Frontera media-varianza, 2 activos.",
+                     labels = percent_format(accuracy = 1)) +
+  labs(title = "Frontera media-varianza, 2 activos y 2 carteras.",
        x = "Volatilidad", y = "Rendimiento esperado", color = "Series") +
   theme_minimal() +
   theme(legend.position = c(0, 1), legend.justification = c(0, 1),
@@ -553,9 +552,10 @@ A_all <- as.numeric(t(ones_all) %*% inv_Sigma_all %*% ones_all)
 weights_minvar10_short <- as.numeric(inv_Sigma_all %*% ones_all / A_all)
 names(weights_minvar10_short) <- names(mu_vec_all)
 
-minvar_point_10_short <- tibble(symbol = minvar10_short_label, 
-                                ER = sum(weights_minvar10_short * mu_vec_all),
-         SD = sqrt(as.numeric(t(weights_minvar10_short) %*% Sigma_all %*% weights_minvar10_short)))
+minvar_point_10_short <- 
+  tibble(symbol = minvar10_short_label, 
+    ER = sum(weights_minvar10_short * mu_vec_all),
+    SD = sqrt(as.numeric(t(weights_minvar10_short) %*% Sigma_all %*% weights_minvar10_short)))
 
 weights_gmv_table_short <- tibble(symbol = names(mu_vec_all),
          weight = weights_minvar10_short,
@@ -595,8 +595,8 @@ ggplot() +
   geom_text(data = stats_all_ext_ns, aes(SD, ER, label = symbol, color = symbol),
             vjust = 2, size = 3, show.legend = FALSE) +
   scale_color_manual(values = color_values_ext_ns, limits = stats_all_ext_ns$symbol) +
-  scale_x_continuous(limits = c(0.025, 0.19), labels = percent_format(accuracy = 0.1)) +
-  scale_y_continuous(limits = c(-0.01, 0.03), labels = percent_format(accuracy = 0.1)) +
+  scale_x_continuous(limits = c(0.025, 0.19), labels = percent_format(accuracy = 1)) +
+  scale_y_continuous(limits = c(-0.01, 0.03), labels = percent_format(accuracy = 1)) +
   labs(title = "Frontera media-varianza, 10 activos sin ventas en corto.",
        x = "Volatilidad", y = "Rendimiento esperado") +
   guides(color = "none") +
@@ -634,9 +634,9 @@ Amat_short <- rbind(rep(1, n_assets), mu_vec_all)
     geom_text(data = stats_all_ext_short, aes(SD, ER, label = symbol, color = symbol),
               vjust = 2, size = 3, show.legend = FALSE) +
     scale_color_manual(values = color_values_ext_short, limits = stats_all_ext_short$symbol) +
-    scale_x_continuous(limits = c(0.025, 0.19), labels = percent_format(accuracy = 0.1)) +
-    scale_y_continuous(limits = c(-0.01, 0.03), labels = percent_format(accuracy = 0.1)) +
-    labs(title = "Fronteria media-varianza, 10 activos con ventas en corto.",
+    scale_x_continuous(limits = c(0.025, 0.19), labels = percent_format(accuracy = 1)) +
+    scale_y_continuous(limits = c(-0.01, 0.03), labels = percent_format(accuracy = 1)) +
+    labs(title = "Fronteria media-varianza, 10 activos con ventas en corto y 2 carteras.",
          x = "Volatilidad", y = "Rendimiento esperado") +
     guides(color = "none") +
     theme_minimal()
@@ -651,14 +651,13 @@ weights_50_50 <- c(LRCX = 0.5, GIS = 0.5)
   custom_weights  <- c(LRCX = 0.1990055, GIS = 0.8009945)
   portfolio_label <- "19.90% LRCX / 80.10% GIS"
 
-  weights_1N <- setNames(rep(1 / n_assets, n_assets), names(mu_vec_all))
+weights_1N <- setNames(rep(1 / n_assets, n_assets), names(mu_vec_all))
 
-  weights_specs <-
-    list("50/50 LRCX-GIS" = weights_50_50,
-         "19.90% LRCX / 80.10% GIS" = custom_weights,
-         "MV 10-Asset (No Shorts)" = weights_minvar10_ns,
-         "MV 10-Asset (Shorts Allowed)" = weights_minvar10_short,
-         "1/N" = weights_1N)
+weights_specs <- list("50/50 LRCX-GIS" = weights_50_50,
+                      "19.90% LRCX / 80.10% GIS" = custom_weights,
+                      "MV 10-Asset (No Shorts)" = weights_minvar10_ns,
+                      "MV 10-Asset (Shorts Allowed)" = weights_minvar10_short,
+                      "1/N" = weights_1N)
 
   portfolio_stats_ext <- imap_dfr(weights_specs, ~ portfolio_stats(monthly_returns, .x, .y))
 
