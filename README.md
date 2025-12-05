@@ -12,6 +12,7 @@ https://www.youtube.com/@ahyaentendi
 1. Introducción a las velas japonesas en trading. `NA`
 1. Estrategias de cobertura y especulación usando opciones financieras. `NA`
 1. Carteras de inversión, una introducción al diseño y análisis (próximamente). `port`
+1. El robo-trader más simple (próximamente).
 
 ## Finanzas para no financieros.
 
