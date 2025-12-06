@@ -2,7 +2,7 @@
 
 https://www.youtube.com/@ahyaentendi
 
-## Videos.
+## Finanzas.
 
 1. Rendimientos accionarios en R. `rend`
 1. Rendimiento aritmético y geométrico. `arigeo`
@@ -13,6 +13,9 @@ https://www.youtube.com/@ahyaentendi
 1. Estrategias de cobertura y especulación usando opciones financieras. `NA`
 1. Carteras de inversión, una introducción al diseño y análisis (próximamente). `port`
 1. El robo-trader más simple (próximamente).
+1. Enfoque gráfico de la probabilidad de default (próximamente).
+1. Regresión lineal con mínimos cuadrados ordinarios (próximamente).
+1. Cartera de mínima varianza con rendimiento objetivo (próximamente).
 
 ## Finanzas para no financieros.
 
@@ -25,12 +28,10 @@ https://www.youtube.com/@ahyaentendi
 1. La paradoja de Parrondo en finanzas.
 1. El sistema financiero.
 1. Correlación y causalidad.
-1. Contabilidad (próximamente).
+1. Contabilidad.
 1. Finanzas (próximamente).
-1. Economía (próximamente).
 1. Costos en contabilidad, finanzas y economía (próximamente).
 1. Ventas en corto (próximamente).
 1. La paradoja del rendimiento máximo (próximamente).
-1. El riesgo no se promedia (próximamente).
 
 
