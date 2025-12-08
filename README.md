@@ -19,7 +19,7 @@ https://www.youtube.com/@ahyaentendi
 
 ## Finanzas para no financieros.
 
-1. Dinero, tiempo e información (próximamente). `FPNF-dti`
+1. Dinero, tiempo e información. `FPNF-dti`
 1. Introducción a los estados financieros y su análisis (próximamente). `FPNF-estados`
 1. Valor presente y valor futuro (próximamente). `FPNF-vpvf`
 
@@ -29,7 +29,7 @@ https://www.youtube.com/@ahyaentendi
 1. El sistema financiero.
 1. Correlación y causalidad.
 1. Contabilidad.
-1. Finanzas (próximamente).
+1. Finanzas.
 1. Costos en contabilidad, finanzas y economía (próximamente).
 1. Ventas en corto (próximamente).
 1. La paradoja del rendimiento máximo (próximamente).
