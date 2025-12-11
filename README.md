@@ -20,7 +20,7 @@ https://www.youtube.com/@ahyaentendi
 ## Finanzas para no financieros.
 
 1. Dinero, tiempo e información. `FPNF-dti`
-1. Introducción a los estados financieros y su análisis (próximamente). `FPNF-estados`
+1. Introducción a los estados financieros y su análisis. `FPNF-estados`
 1. Valor presente y valor futuro (próximamente). `FPNF-vpvf`
 
 ## Shorts.
