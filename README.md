@@ -30,7 +30,7 @@ https://www.youtube.com/@ahyaentendi
 1. Correlación y causalidad.
 1. Contabilidad.
 1. Finanzas.
-1. Costos en contabilidad, finanzas y economía (próximamente).
+1. Costo en contabilidad, finanzas y economía.
 1. Ventas en corto (próximamente).
 1. La paradoja del rendimiento máximo (próximamente).
 
