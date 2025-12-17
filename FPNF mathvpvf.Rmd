@@ -1,0 +1,198 @@
+---
+title: "\\textbf{Derivaciones matemáticas | Valor del dinero en el tiempo.}"
+subtitle: "Finanzas para no financieros."
+author: "Dr. Martín Lozano \\texttt{https://mlozanoqf.github.io/}"
+date: "`r gsub('a\\. m\\.', 'a.m.', gsub('p\\. m\\.', 'p.m.', format(Sys.time(), '%d de %B de %Y, %I:%M %p')))`"
+output:
+  pdf_document:
+    latex_engine: xelatex
+    number_sections: true
+    highlight: tango
+header-includes:
+  - \usepackage{xcolor}
+  - \usepackage{amssymb}
+  - \usepackage{amsmath}
+---
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+library(knitr)
+
+tabla <- matrix(
+  c("$\\checkmark$", "$\\times$", "$\\times$",
+    "$\\times$", "$\\times$", "$\\times$",
+    "$\\times$", "$\\times$", "$\\times$"),
+  nrow = 3, byrow = TRUE
+)
+colnames(tabla) <- c("Fundamental", "Intermedio", "Especializado")
+rownames(tabla) <- c("Finanzas", "Estadística", "R")
+
+kable(tabla, escape = FALSE, align = c("c","c","c"))
+
+```
+
+
+
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  class.source = "numberLines",   # activa numeración en todos los chunks con echo=TRUE
+  Sys.setlocale("LC_TIME", "es_ES.UTF-8")
+)
+```
+
+\newpage
+\Large 
+
+# Introducción
+
+\begin{itemize}
+\item El valor del dinero en el tiempo implica que \$1 hoy no equivale a \$1 mañana. Con una tasa $i$, el dinero puede crecer (capitalizarse) o traerse al presente (descontarse).
+
+\item Las fórmulas de $VP$ y $VF$ permiten comparar cantidades en fechas distintas usando una fecha base, lo cual es clave para decidir entre alternativas.
+
+\item A partir del caso más simple de un solo periodo, se construye la fórmula general para $n$ periodos y luego se extiende a flujos de efectivo: anualidades y perpetuidades.
+
+\item Estas derivaciones son la base para aplicaciones como valuación de proyectos, créditos e hipotecas, planes de ahorro e inversiones, y valuación de activos con flujos futuros.
+\end{itemize}
+
+
+\newpage
+
+# Valor futuro.
+
+\begin{itemize}
+\item Un solo periodo.
+
+$VF = VP + iVP \rightarrow VF = VP(1+i)$.
+
+\item Dos periodos.
+
+$VF = VP(1+i)+iVP(1+i) \rightarrow VF = VP(1+i)(1+i)$
+
+$\rightarrow VF = VP(1+i)^2$.
+
+\item $n$ periodos.
+
+$VF = VP(1+i)^n$.
+
+\item Valor presente.
+
+$VF = VP(1+i)^n \rightarrow VP = \dfrac{VF}{(1+i)^n}$.
+\end{itemize}
+
+
+\newpage
+
+# Anualidad ordinaria (pagos al final).
+
+\begin{itemize}
+\item Planteamiento (pago fijo $C$, tasa por periodo $i$, $n$ pagos).
+
+$VP = \dfrac{C}{1+i} + \dfrac{C}{(1+i)^2} + \cdots + \dfrac{C}{(1+i)^n}$.
+
+\item Factorizamos $C$.
+
+$VP = C\left[\dfrac{1}{1+i} + \dfrac{1}{(1+i)^2} + \cdots + \dfrac{1}{(1+i)^n}\right]$.
+
+\item Para ver una serie geométrica, definimos $q=\dfrac{1}{1+i}$.
+
+$VP = C\left[q + q^2 + q^3 + \cdots + q^n\right]$.
+
+\item Definimos $S$.
+
+$S = q + q^2 + q^3 + \cdots + q^n$
+
+$qS = q^2 + q^3 + q^4 + \cdots + q^{n+1}$
+
+$S - qS = (q + q^2 + \cdots + q^n) - (q^2 + \cdots + q^{n+1})$
+
+$\rightarrow S - qS = q - q^{n+1} \rightarrow S(1-q) = q(1-q^n)$
+
+$\rightarrow S = \dfrac{q(1-q^n)}{1-q}$.
+
+\item Sustituimos $q=\dfrac{1}{1+i}$, y $(1-q) = 1-\dfrac{1}{1+i} = \dfrac{i}{1+i}$:
+
+$S = \dfrac{\frac{1}{1+i}\left(1-(1+i)^{-n}\right)}{\frac{i}{1+i}}
+= \dfrac{1-(1+i)^{-n}}{i}$.
+
+\item Finalmente.
+
+$VP = CS \rightarrow VP = C\,\dfrac{1-(1+i)^{-n}}{i}$.
+\end{itemize}
+
+\newpage
+
+# Valor futuro de una anualidad ordinaria (pagos al final).
+
+\begin{itemize}
+\item Partimos del valor presente.
+
+$VP = C\,\dfrac{1-(1+i)^{-n}}{i}$.
+
+\item Llevamos $VP$ al final del periodo $n$.
+
+$VF = VP(1+i)^n$.
+
+\item Sustituimos $VP$.
+
+$VF = \left(C\,\dfrac{1-(1+i)^{-n}}{i}\right)(1+i)^n$.
+
+\item Simplificamos usando $(1+i)^n(1+i)^{-n}=1$.
+
+$VF = C\,\dfrac{(1+i)^n - 1}{i}$.
+\end{itemize}
+
+\newpage
+
+# Perpetuidad (pagos al final).
+
+\begin{itemize}
+\item Planteamiento (pago fijo $C$ cada periodo, tasa $i$, duración infinita).
+
+$VP = \dfrac{C}{1+i} + \dfrac{C}{(1+i)^2} + \dfrac{C}{(1+i)^3} + \cdots$.
+
+\item Factorizamos $C$ y definimos $q=\dfrac{1}{1+i}$.
+
+$VP = C\left[\dfrac{1}{1+i} + \dfrac{1}{(1+i)^2} + \cdots \right]$
+
+$\rightarrow VP = C\left[q + q^2 + q^3 + \cdots\right]$.
+
+\item Definimos $S$:
+
+$S = q + q^2 + q^3 + \cdots$
+
+$qS = q^2 + q^3 + q^4 + \cdots$
+
+$S - qS = (q + q^2 + q^3 + \cdots) - (q^2 + q^3 + q^4 + \cdots)$
+
+$\rightarrow S - qS = q \rightarrow S(1-q) = q$
+
+$\rightarrow S = \dfrac{q}{1-q}$.
+
+\item Sustituimos $q=\dfrac{1}{1+i}$, y $(1-q) = 1-\dfrac{1}{1+i}=\dfrac{i}{1+i}$:
+
+$S=\dfrac{\frac{1}{1+i}}{\frac{i}{1+i}}=\dfrac{1}{i}$.
+
+\item Finalmente:
+
+$VP = C\,S \rightarrow VP = \dfrac{C}{i}$.
+\end{itemize}
+
+\newpage
+
+# Conclusión.
+
+\begin{itemize}
+\item A partir de la capitalización por periodos se obtiene la relación general entre $VP$ y $VF$.
+
+\item Usando la suma de una serie geométrica se derivan las fórmulas para anualidades y perpetuidades.
+
+\item En conjunto, estas expresiones permiten valorar y comparar flujos de efectivo en distintos momentos de tiempo de manera consistente.
+\end{itemize}
+
+
+\newpage

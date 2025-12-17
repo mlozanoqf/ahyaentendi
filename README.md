@@ -22,7 +22,8 @@ https://www.youtube.com/@ahyaentendi
 1. Dinero, tiempo e información. `FPNF-dti`
 1. Estados financieros y su análisis | Introducción. `FPNF-estados`
 1. Valor del dinero en el tiempo. `FPNF-vpvf`
-1. Anualidades y finanzas personales (próximamente).
+1. Anualidades, ahorro, crédito y amortización (próximamente). `FPNF-annual`
+1. Derivaciones matemáticas | Valor del dinero en el tiempo  (próximamente). `FPNF-mathvpvf`
 1. Evaluación de proyectos (próximamente).
 1. Acciones y bonos (próximamente).
 
