@@ -1,0 +1,272 @@
+---
+title: "\\textbf{Anualidades, crédito y decisiones financieras.}"
+subtitle: "Finanzas para no financieros."
+author: "Dr. Martín Lozano \\texttt{https://mlozanoqf.github.io/}"
+date: "`r gsub('a\\. m\\.', 'a.m.', gsub('p\\. m\\.', 'p.m.', format(Sys.time(), '%d de %B de %Y, %I:%M %p')))`"
+output:
+  pdf_document:
+    latex_engine: xelatex
+    number_sections: true
+    highlight: tango
+header-includes:
+  - \usepackage{xcolor}
+  - \usepackage{fvextra}
+  - |
+      \DefineVerbatimEnvironment{Highlighting}{Verbatim}{
+        breaklines,
+        commandchars=\\\{\},
+        numbers=left,
+        numbersep=8pt,
+        fontsize=\small,
+        firstnumber=1,
+        xleftmargin=1.5em,
+        frame=none
+      }
+      % ← Estilo de los números de línea (más visibles)
+      \renewcommand{\theFancyVerbLine}{\textcolor{black}{\bfseries\small\arabic{FancyVerbLine}}}
+  - \usepackage{amssymb}
+  - \usepackage{amsmath}
+---
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+library(knitr)
+
+tabla <- matrix(
+  c("$\\checkmark$", "$\\times$", "$\\times$",
+    "$\\times$", "$\\times$", "$\\times$",
+    "$\\times$", "$\\times$", "$\\times$"),
+  nrow = 3, byrow = TRUE
+)
+colnames(tabla) <- c("Fundamental", "Intermedio", "Especializado")
+rownames(tabla) <- c("Finanzas", "Estadística", "R")
+
+kable(tabla, escape = FALSE, align = c("c","c","c"))
+
+```
+
+
+
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  class.source = "numberLines",   # activa numeración en todos los chunks con echo=TRUE
+  Sys.setlocale("LC_TIME", "es_ES.UTF-8")
+)
+```
+
+\newpage
+\Large 
+
+# ¿Qué es una anualidad?
+
+\begin{itemize}
+\item En muchas decisiones financieras no hay un solo pago o un solo cobro, sino una serie de pagos o cobros que se repiten de forma regular a lo largo del tiempo.
+\item Una anualidad es precisamente eso. Una secuencia de flujos iguales que ocurren en intervalos regulares, normalmente cada año, mes o periodo.
+\item Las anualidades aparecen de forma natural en planes de ahorro, pensiones, pagos de créditos, rentas, seguros y tarjetas de crédito.
+\item Evaluar una anualidad implica responder la misma pregunta de siempre en finanzas. Cuánto valen hoy esos pagos futuros o cuánto habrá que pagar en el futuro por compromisos que asumimos hoy.
+\item Por eso, las anualidades extienden las ideas de valor presente y valor futuro a situaciones reales donde el dinero no llega ni se paga de una sola vez.
+\end{itemize}
+
+
+\newpage
+
+# Fórmulas básicas de anualidades y perpetuidades.
+
+\begin{itemize}
+\item Una anualidad es una serie de pagos iguales $C$ que ocurren al final de cada periodo durante $n$ periodos, con tasa por periodo $i$. Para comparar con dinero de hoy, llevamos esos pagos al presente.
+
+\item Valor presente de una anualidad ordinaria.
+
+$VP = C \dfrac{1 - (1+i)^{-n}}{i}$.
+
+\item Valor futuro de una anualidad ordinaria.
+
+$VF = C \dfrac{(1+i)^{n} - 1}{i}$.
+
+\item Si el pago ocurre al inicio de cada periodo (anualidad anticipada), el valor es el de la anualidad ordinaria multiplicado por $(1+i)$.
+
+$VP_{\text{ant}} = VP(1+i)$.
+
+$VF_{\text{ant}} = VF(1+i)$.
+
+\item Una perpetuidad es una anualidad sin fin.
+
+$VP = \dfrac{C}{i}$.
+\end{itemize}
+
+
+\newpage
+
+# Plan de ahorro con objetivo futuro.
+
+\begin{itemize}
+
+\item Supón que una persona quiere acumular \$1,000,000 para su retiro dentro de 20 años. Planea hacer aportaciones iguales al final de cada año y puede obtener una tasa de interés anual del 8\%.
+
+\item El problema financiero consiste en determinar cuánto debe ahorrar cada año para alcanzar ese monto futuro.
+
+\item Fórmula general del valor futuro de una anualidad ordinaria:
+
+$VF = C \dfrac{(1+i)^n - 1}{i}$,
+
+donde $C$ es el ahorro anual, $i$ es la tasa de interés y $n$ es el número de años.
+
+\item Sustituyendo los valores conocidos:
+
+$1,000,000 = C \dfrac{(1+0.08)^{20} - 1}{0.08}$.
+
+\item Despejando $C$:
+
+$C = \dfrac{1,000,000 \times 0.08}{(1+0.08)^{20} - 1} \rightarrow C = \dfrac{80,000}{4.66096 - 1}$
+
+$\rightarrow C = \dfrac{80,000}{3.66096} \rightarrow C = 21,852.2088$.
+
+\item La persona debe ahorrar aproximadamente \$21,852.2088 al final de cada año durante 20 años para alcanzar el objetivo de \$1,000,000.
+
+\item Comprobación del resultado:
+
+$VF = 21,852.2088 \dfrac{(1+0.08)^{20} - 1}{0.08}$
+
+$\rightarrow VF = 21,852.2088 \times 45.7619 \rightarrow VF = 1,000,000$.
+
+\item El ejemplo muestra cómo una serie de aportaciones, sostenidas en el tiempo y capitalizadas, permiten alcanzar un monto determinado en el futuro.
+
+\end{itemize}
+
+
+\newpage
+
+# Tarjeta de crédito: pago mínimo vs. liquidar en 6 meses.
+
+\begin{itemize}
+
+\item Supongamos un saldo inicial de \$10,000 en una tarjeta con tasa de interés mensual $i = 5\%$ mensual. Cada mes, el interés se calcula como $I_t = i \times S_{t-1}$ y el saldo evoluciona como $S_t = S_{t-1} + I_t - C$.
+
+\item Caso 1: pago “mínimo” fijo $C=\$400$. Como el interés mensual inicial es \$500, el pago no cubre los intereses y el saldo crece.
+
+\begin{center}
+\begin{tabular}{r r r r r}
+\toprule
+Mes & Saldo inicial & Interés & Pago & Saldo final \\
+\midrule
+1 & \$10,000 & \$500 & \$400 & \$10,100 \\
+2 & \$10,100 & \$505 & \$400 & \$10,205 \\
+3 & \$10,205 & \$510 & \$400 & \$10,315 \\
+4 & \$10,315 & \$516 & \$400 & \$10,431 \\
+5 & \$10,431 & \$522 & \$400 & \$10,553 \\
+6 & \$10,553 & \$528 & \$400 & \$10,681 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\item Caso 2: liquidar exactamente en $n=6$ meses con pagos iguales. El pago mensual que amortiza el saldo es:
+$C = VP \dfrac{i}{1-(1+i)^{-n}}$.
+
+\item Sustitución:
+$C = 10,000 \dfrac{0.05}{1-(1.05)^{-6}} = \$1,970.1746$.
+
+\begin{center}
+\begin{tabular}{r r r r r}
+\toprule
+Mes & Saldo inicial & Interés & Pago & Saldo final \\
+\midrule
+1 & \$10,000 & \$500 & \$1,970 & \$8,530 \\
+2 & \$8,530 & \$426 & \$1,970 & \$6,986 \\
+3 & \$6,986 & \$349 & \$1,970 & \$5,365 \\
+4 & \$5,365 & \$268 & \$1,970 & \$3,663 \\
+5 & \$3,663 & \$183 & \$1,970 & \$1,876 \\
+6 & \$1,876 & \$94 & \$1,970 & \$0 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\item Con una tasa alta, un pago demasiado bajo puede dejarte atrapado, el saldo no baja o incluso sube. Un plan de pago calculado con anualidades traduce un objetivo en un pago mensual consistente.
+
+\end{itemize}
+
+
+\newpage
+
+# Crédito automotriz y tabla de amortización.
+
+\begin{itemize}
+\item Un crédito automotriz es un ejemplo de anualidad. Pagas la misma cantidad cada mes y esa cuota se reparte entre intereses y capital. Al inicio pagas más intereses y menos capital. Conforme baja el saldo, los intereses bajan y cada pago amortiza más capital.
+\item Supón un crédito de \$300,000 a 36 meses con tasa del 12\% anual (1\% mensual). La cuota mensual $C$ se calcula con la fórmula de anualidad:
+$VP = C\dfrac{1-(1+i)^{-n}}{i} \rightarrow 300,000 = C \dfrac{1-(1+0.01)^{-36}}{0.01}$
+
+$\rightarrow 300,000 = C \times 30.107 \rightarrow C = \dfrac{300,000}{30.107}$
+
+$C = 9,964.29$.
+\item La tabla de amortización muestra saldo inicial, interés del mes, pago, amortización a capital y saldo final.
+\end{itemize}
+
+\begin{center}
+\begin{tabular}{rrrrrr}
+\toprule
+Mes & Saldo inicial & Interés & Pago & Amortización & Saldo final \\
+\midrule
+1 & \$ 300,000.00 & \$ 3,000.00 & \$ 9,964.29 & \$ 6,964.29 & \$ 293,035.71 \\
+2 & \$ 293,035.71 & \$ 2,930.36 & \$ 9,964.29 & \$ 7,033.93 & \$ 286,001.78 \\
+3 & \$ 286,001.78 & \$ 2,860.02 & \$ 9,964.29 & \$ 7,104.27 & \$ 278,897.51 \\
+4 & \$ 278,897.51 & \$ 2,788.98 & \$ 9,964.29 & \$ 7,175.31 & \$ 271,722.20 \\
+5 & \$ 271,722.20 & \$ 2,717.22 & \$ 9,964.29 & \$ 7,247.07 & \$ 264,475.13 \\
+6 & \$ 264,475.13 & \$ 2,644.75 & \$ 9,964.29 & \$ 7,319.54 & \$ 257,155.59 \\
+\midrule
+\multicolumn{6}{c}{\dots} \\
+\midrule
+34 & \$ 29,304.96 & \$ 293.05 & \$ 9,964.29 & \$ 9,671.24 & \$ 19,633.72 \\
+35 & \$ 19,633.72 & \$ 196.34 & \$ 9,964.29 & \$ 9,767.95 & \$ 9,865.77 \\
+36 & \$ 9,865.77 & \$ 98.66 & \$ 9,964.29 & \$ 9,865.77 & \$ 0.00 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\begin{itemize}
+\item Aunque el pago es constante, el interés se calcula sobre el saldo. Por eso, al inicio una parte grande del pago cubre intereses y la reducción del saldo es más lenta; con el tiempo, la amortización acelera.
+\end{itemize}
+
+
+\newpage
+
+# Perpetuidades: flujos que no tienen fecha de término.
+
+\begin{itemize}
+
+\item Una perpetuidad es una serie de flujos de efectivo iguales que se reciben de forma indefinida, sin una fecha final. En la práctica, se usa para valorar activos que generan ingresos estables y recurrentes durante un horizonte muy largo.
+
+\item Ejemplos realistas incluyen la renta neta de un inmueble bien ubicado, una concesión de largo plazo, o un negocio muy maduro con flujos estables que se espera continúen en el tiempo.
+
+\item Supongamos un inmueble que genera una renta neta anual de \$120,000 de manera estable y que la tasa de rendimiento requerida para este tipo de activo es del 8\% anual.
+
+\item La fórmula del valor presente de una perpetuidad es:
+$VP = \dfrac{C}{i}$,
+donde $C$ es el flujo anual constante y $i$ es la tasa de descuento.
+
+\item Sustituyendo los valores del ejemplo:
+$VP = \dfrac{120,000}{0.08} = 1,500,000$.
+
+\item El resultado significa que pagar hoy \$1,500,000 por este activo es financieramente equivalente a recibir \$120,000 cada año para siempre, siempre que la tasa de descuento sea 8\%.
+
+\item No quiere decir que el activo “genere” \$1,500,000 en algún momento. Quiere decir que, desde el punto de vista financiero, tener hoy \$1,500,000 es equivalente a recibir ese ingreso anual perpetuo bajo esa tasa de interés.
+
+\item Si el activo cuesta más de \$1,500,000, el rendimiento implícito sería menor al 8\%. Si cuesta menos, el rendimiento implícito sería mayor. La perpetuidad permite traducir un ingreso anual permanente en un valor comparable hoy.
+
+\end{itemize}
+
+
+\newpage
+
+\newpage
+
+# Conclusión.
+
+Las anualidades y perpetuidades permiten traducir patrones comunes de la vida financiera a comparaciones claras. Un objetivo futuro se convierte en un ahorro periódico, una deuda se convierte en una cuota constante, y un ingreso recurrente se convierte en un valor comparable hoy. En todos los casos, la tasa de interés conecta el monto con el tiempo y revela el verdadero costo o beneficio de elegir pagar, ahorrar o financiarse de una forma u otra.
+
+
+\newpage
+
+
