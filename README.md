@@ -13,7 +13,7 @@ https://www.youtube.com/@ahyaentendi
 1. Estimación del modelo GARCH(1,1). `garch11`
 1. Estrategias de cobertura y especulación usando opciones financieras. `NA`
 1. Carteras de inversión | Diseño y análisis. `port`
-1. Cartera óptima con rendimiento objetivo (próximamente). `port-robj`
+1. Cartera óptima con rendimiento objetivo (próximamente). `port_robj`
 1. Enfoque gráfico de la probabilidad de default (próximamente).
 1. Regresión lineal con mínimos cuadrados ordinarios (próximamente).
 
