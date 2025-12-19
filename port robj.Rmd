@@ -1,0 +1,298 @@
+---
+title: "\\textbf{Cartera óptima con rendimiento objetivo.}"
+subtitle: "Introducción al diseño y análisis."
+author: "Dr. Martín Lozano \\texttt{https://mlozanoqf.github.io/}"
+date: "`r gsub('a\\. m\\.', 'a.m.', gsub('p\\. m\\.', 'p.m.', format(Sys.time(), '%d de %B de %Y, %I:%M %p')))`"
+output:
+  pdf_document:
+    latex_engine: xelatex
+    number_sections: true
+    highlight: tango
+header-includes:
+  - \usepackage{xcolor}
+  - \usepackage{fvextra}
+  - |
+      \DefineVerbatimEnvironment{Highlighting}{Verbatim}{
+        breaklines,
+        commandchars=\\\{\},
+        numbers=left,
+        numbersep=8pt,
+        fontsize=\small,
+        firstnumber=1,
+        xleftmargin=1.5em,
+        frame=none
+      }
+      % ← Estilo de los números de línea (más visibles)
+      \renewcommand{\theFancyVerbLine}{\textcolor{black}{\bfseries\small\arabic{FancyVerbLine}}}
+  - \usepackage{amssymb}
+  - \usepackage{amsmath}
+---
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+library(knitr)
+
+tabla <- matrix(
+  c("$\\times$", "$\\checkmark$", "$\\times$",
+    "$\\checkmark$", "$\\times$", "$\\times$",
+    "$\\times$", "$\\checkmark$", "$\\times$"),
+  nrow = 3, byrow = TRUE
+)
+colnames(tabla) <- c("Fundamental", "Intermedio", "Especializado")
+rownames(tabla) <- c("Finanzas", "Estadística", "R")
+
+kable(tabla, escape = FALSE, align = c("c","c","c"))
+
+```
+
+
+
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  class.source = "numberLines",   # activa numeración en todos los chunks con echo=TRUE
+  Sys.setlocale("LC_TIME", "es_ES.UTF-8")
+)
+```
+
+\newpage
+\Large 
+
+# Introducción.
+
+\begin{itemize}
+  \item Conceptos fundamentales del análisis riesgo–rendimiento.
+  \item Explicar la frontera media–varianza, destacando cómo se obtiene mediante métodos analíticos y numéricos.
+  \item Construir y evaluar portafolios ingenuos, de mínima varianza, de 2 y 10 activos usando datos reales.
+  \item Análisis cuando se permiten o restringen las ventas en corto.
+  \end{itemize}
+
+\newpage
+
+# Diez empresas públicas de Estados Unidos.
+
+| Ticker | Nombre de la empresa              | Industria                                                      |
+|--------|------------------------------------|----------------------------------------------------------------|
+| AMD    | Advanced Micro Dev.       | Computación de alto rendimiento              |
+| CNC    | Centene Corp.                | Servicios de salud            |
+| GIS    | General Mills, Inc.                | Productos de consumo envasados                  |
+| LMT    | Lockheed Martin Corp.        | Aeroespacial y defensa                                         |
+| LRCX   | Lam Research Corp.           | Semiconductores                    |
+| NEM    | Newmont Corp.                | Minería de metales preciosos              |
+| SNPS   | Synopsys, Inc.                     | Software de diseño         |
+| SYF    | Synchrony Financial                | Servicios financieros       |
+| TRMB   | Trimble Inc.                       | Tecnología geoespacial              |
+| TTD    | The Trade Desk, Inc.               | Tecnología publicitaria      |
+
+\newpage
+
+# Paquetes.
+
+```{r}
+library(tidyquant)
+library(tidyverse)
+library(lubridate)
+library(scales)
+library(quadprog)
+```
+
+\newpage
+
+# Inicialización, parte 1.
+
+```{r}
+# Empresas y rango temporal
+
+tickers <- c("AMD","CNC","GIS","LMT","LRCX","NEM","SNPS","SYF","TRMB","TTD")
+n_months <- 60L
+price_start <- ymd("2020-09-01")
+price_end <- price_start %m+% months(n_months + 1) - days(1)
+returns_start <- price_start %m+% months(1)
+returns_end <- returns_start %m+% months(n_months) - months(1)
+
+# Descarga de precios históricos de las acciones
+
+prices <- tq_get(tickers, from = price_start, to = price_end, get = "stock.prices")
+
+# Cálculo de retornos mensuales por activo
+
+monthly_returns <- prices |>
+  arrange(symbol, date) |>
+  group_by(symbol) |>
+  tq_transmute(select = adjusted, mutate_fun = periodReturn,
+               period = "monthly", type = "arithmetic",
+               col_rename = "monthly_return") |>
+  filter(between(date, returns_start, returns_end)) |>
+  slice_head(n = n_months) |>
+  ungroup()
+
+stopifnot(n_distinct(monthly_returns$symbol) == length(tickers))
+
+# Función: estadísticas básicas por activo
+
+asset_stats <- function(data) {
+  data |>
+    group_by(symbol) |>
+    summarise(ER = mean(monthly_return, na.rm = TRUE),
+              SD = sd(monthly_return, na.rm = TRUE),
+              SR = ER / SD, .groups = "drop")}
+
+```
+
+\newpage
+
+
+
+
+# Riesgo-rendimiento: 10 activos individuales.
+
+```{r}
+stats <- asset_stats(monthly_returns) |>
+  arrange(-SR) |>
+  print()
+```
+
+\newpage
+
+# Cartera de mínima varianza global (GMV).
+
+Sea $n$ el número de activos. Definimos:
+\[
+\Sigma := \operatorname{Var}(R)\in\mathbb{R}^{n\times n},\qquad
+\mu := \mathbb{E}[R]\in\mathbb{R}^{n},\qquad
+\mathbf{1}:=(1,\dots,1)^\top\in\mathbb{R}^n.
+\]
+
+Definimos los escalares:
+\[
+\begin{aligned}
+a &:= \mathbf{1}^\top \Sigma^{-1}\mathbf{1},\\
+b &:= \mathbf{1}^\top \Sigma^{-1}\mu,\\
+c &:= \mu^\top \Sigma^{-1}\mu,\\
+d &:= ac-b^2.
+\end{aligned}
+\]
+
+El problema es:
+\[
+\min_{w\in\mathbb{R}^n}\; w^\top \Sigma w
+\quad \text{s.a.}\quad \mathbf{1}^\top w = 1.
+\]
+
+El Lagrangiano es:
+\[
+\mathcal{L}(w,\lambda)=w^\top \Sigma w-\lambda(\mathbf{1}^\top w-1).
+\]
+
+La condición de primer orden (FOC) es:
+\[
+\nabla_w \mathcal{L}=2\Sigma w-\lambda\mathbf{1}=0
+\quad\Rightarrow\quad
+w=\frac{\lambda}{2}\Sigma^{-1}\mathbf{1}.
+\]
+
+Usando la restricción $\mathbf{1}^\top w=1$:
+\[
+\mathbf{1}^\top w=\frac{\lambda}{2}\mathbf{1}^\top\Sigma^{-1}\mathbf{1}=1
+\quad\Rightarrow\quad
+\frac{\lambda}{2}=\frac{1}{a}.
+\]
+
+Por tanto, los pesos de mínima varianza global son:
+\[
+w_{\min}=\frac{\Sigma^{-1}\mathbf{1}}{a}.
+\]
+
+\newpage
+
+# Cartera de mínima varianza con objetivo $r^*$.
+
+Sea $r^*\in\mathbb{R}$ el rendimiento objetivo. El problema es:
+\[
+\min_{w\in\mathbb{R}^n}\; w^\top \Sigma w
+\quad \text{s.a.}\quad
+\mathbf{1}^\top w = 1,\;\; \mu^\top w = r^*.
+\]
+
+El Lagrangiano es:
+\[
+\mathcal{L}(w,\lambda,\gamma)=
+w^\top\Sigma w
+-\lambda(\mathbf{1}^\top w-1)
+-\gamma(\mu^\top w-r^*).
+\]
+
+La FOC es:
+\[
+\nabla_w\mathcal{L}=2\Sigma w-\lambda\mathbf{1}-\gamma\mu=0.
+\]
+
+Definimos los vectores:
+\[
+g := \Sigma^{-1}\frac{c\,\mathbf{1}-b\,\mu}{d},
+\qquad
+h := \Sigma^{-1}\frac{a\,\mu-b\,\mathbf{1}}{d}.
+\]
+
+Entonces, para cualquier objetivo $r^*$, los pesos se obtienen como:
+\[
+w(r^*)=g+h\,r^*.
+\]
+
+Para un vector de pesos $w$:
+\[
+\mathbb{E}[R_p]=w^\top\mu,
+\qquad
+\sigma_p=\sqrt{w^\top\Sigma w}.
+\]
+
+
+\newpage
+
+```{r}
+R <- R * 100
+R.tomorrow <- R.tomorrow * 100
+stocks<- c("DJIA", "FTSE100", "CAC40", "Nikkei")
+sigma <- var(R)
+sd <- diag(sigma)^0.5
+E <- colMeans(R)
+E.tomorrow <- colMeans(R.tomorrow)
+ones <- abs(E / E)
+a <- c(t(ones) %*% solve(sigma) %*% ones)
+b <- c(t(ones) %*% solve(sigma) %*% E)
+c <- c(t(E) %*% solve(sigma) %*% E)
+d <- c(a * c - (b^2))
+g <- c(solve(sigma) %*% (c * ones - b * E) / d)
+h <- c(solve(sigma) %*% (a * E - b * ones) / d)
+ER <- seq(from = -0.3, to = 0.3, by = 0.0001)
+S <- ER
+W <- matrix(0, nrow = length(ER), ncol = length(stocks))
+for(i in 1:length(ER)){
+  W[i,] <- g + h * ER[i]
+  ER[i] <- W[i,] %*% E
+  S[i] <- (t(W[i,]) %*% sigma %*% W[i, ])^0.5
+  }
+W_min <- (solve(sigma) %*% ones) / a
+R_min <- c(t(W_min) %*% E)
+R_min.realized <- c(t(W_min) %*% E.tomorrow)
+S_min <- c(t(W_min) %*% sigma %*% W_min)^0.5
+# Allocation to mimic the return of the CAC40 but with lower risk
+W.cac40 <- g + h * E[3]
+R_cac40 <- c(t(W.cac40) %*% E)
+R_cac40.realized <- c(t(W.cac40) %*% E.tomorrow)
+S_cac40 <- c(t(W.cac40) %*% sigma %*% W.cac40)^0.5
+R_hull.realized = c(t(W_hull) %*% E.tomorrow)
+```
+
+# Conclusión.
+
+\Large 
+
+\begin{itemize}
+  \item La diversificación reduce riesgo y permite construir portafolios con mejor relación riesgo–rendimiento que los activos individuales.
+  \item La frontera media–varianza es una herramienta poderosa para visualizar las decisiones de inversión y comprender el intercambio entre riesgo y retorno.
+\end{itemize}
+  
