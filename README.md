@@ -8,7 +8,7 @@ https://www.youtube.com/@ahyaentendi
 1. Rendimiento aritmético y geométrico. `arigeo`
 1. Señales de compra y venta con las Bandas de Bollinger. `NA`
 1. Trading con velas japonesas | Introducción. `NA`
-1. El robo-trader más simple (próximamente).
+1. El robo-trader más simple (próximamente). `robosim`
 1. Estimación muestral de la volatilidad no condicional. `sampvar`
 1. Estimación del modelo GARCH(1,1). `garch11`
 1. Estrategias de cobertura y especulación usando opciones financieras. `NA`
