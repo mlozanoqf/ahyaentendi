@@ -62,66 +62,74 @@ knitr::opts_chunk$set(
 
 \newpage
 
-# Valor futuro.
+# Valor futuro y presente.
 
 \begin{itemize}
-\item Un solo periodo.
+\item Valor futuro, a un solo periodo, $n=1$.
 
-$VF = VP + iVP \rightarrow VF = VP(1+i)$.
+$VF = VP + (i \times VP) \rightarrow VF = VP(1+i)$.
 
-\item Dos periodos.
+\item Valor futuro, a dos periodos, $n=2$.
 
-$VF = VP(1+i)+iVP(1+i) \rightarrow VF = VP(1+i)(1+i)$
+$VF = VP(1+i)+ (i \times VP(1+i)) \rightarrow VF = VP(1+i)(1+i)$
 
-$\rightarrow VF = VP(1+i)^2$.
+$VF = VP(1+i)^2$.
 
-\item $n$ periodos.
+\item Valor futuro, a $n$ periodos.
 
 $VF = VP(1+i)^n$.
 
 \item Valor presente.
 
 $VF = VP(1+i)^n \rightarrow VP = \dfrac{VF}{(1+i)^n}$.
+
+\item En la práctica, traer a valor presente o futuro una sola cantidad de dinero no es muy común. Lo regular es que tengamos que hacer operaciones con varios flujos de efectivo futuros al mismo tiempo, como en el pago de créditos que involucran muchos pagos.
+
 \end{itemize}
 
 
 \newpage
 
-# Anualidad ordinaria (pagos al final).
+# Valor presente de una anualidad ordinaria (pagos al final).
 
 \begin{itemize}
 \item Planteamiento (pago fijo $C$, tasa por periodo $i$, $n$ pagos).
 
-$VP = \dfrac{C}{1+i} + \dfrac{C}{(1+i)^2} + \cdots + \dfrac{C}{(1+i)^n}$.
+$VPA = \dfrac{C}{1+i} + \dfrac{C}{(1+i)^2} + \cdots + \dfrac{C}{(1+i)^n}$.
 
 \item Factorizamos $C$.
 
-$VP = C\left[\dfrac{1}{1+i} + \dfrac{1}{(1+i)^2} + \cdots + \dfrac{1}{(1+i)^n}\right]$.
+$VPA = C\left[\dfrac{1}{1+i} + \dfrac{1}{(1+i)^2} + \cdots + \dfrac{1}{(1+i)^n}\right]$.
 
 \item Para ver una serie geométrica, definimos $q=\dfrac{1}{1+i}$.
 
-$VP = C\left[q + q^2 + q^3 + \cdots + q^n\right]$.
+$VPA = C\left[q + q^2 + q^3 + \cdots + q^n\right]$.
 
 \item Definimos $S$.
 
 $S = q + q^2 + q^3 + \cdots + q^n$
 
-$qS = q^2 + q^3 + q^4 + \cdots + q^{n+1}$
+$qS = q^2 + q^3 + q^4 + \cdots + q^{n} + q^{n+1}$
 
-$S - qS = (q + q^2 + \cdots + q^n) - (q^2 + \cdots + q^{n+1})$
+$S - qS = (q + q^2 + \cdots + q^n) - (q^2 + \cdots + q^{n} + q^{n+1})$
 
-$\rightarrow S - qS = q - q^{n+1} \rightarrow S(1-q) = q(1-q^n)$
+$S - qS = q - q^{n+1} \rightarrow S(1-q) = q(1-q^n)$
 
-$\rightarrow S = \dfrac{q(1-q^n)}{1-q}$.
+$S = \dfrac{q(1-q^n)}{1-q}$.
 
-\item Sustituimos $q=\dfrac{1}{1+i}$, y $(1-q) = 1-\dfrac{1}{1+i} = \dfrac{i}{1+i}$:
+\item Nos olvidamos de $q$ y regresamos a $i$.
 
-$S = \dfrac{\frac{1}{1+i}\left(1-(1+i)^{-n}\right)}{\frac{i}{1+i}}
-= \dfrac{1-(1+i)^{-n}}{i}$.
+Numerador: $q(1-q^n) \rightarrow (1+i)^{-1} (1-(1+i)^{-n})$.
 
-\item Finalmente.
+Denominador: $(1-q) = 1-\dfrac{1}{1+i} \rightarrow \dfrac{i}{1+i} \rightarrow i(1+i)^{-1}$.
 
-$VP = CS \rightarrow VP = C\,\dfrac{1-(1+i)^{-n}}{i}$.
+$S = \dfrac{q(1-q^n)}{1-q} \rightarrow \dfrac{(1+i)^{-1}(1-(1+i)^{-n})}{i(1+i)^{-1}}$
+
+$S = \dfrac{1-(1+i)^{-n}}{i}$.
+
+\item Nos olvidamos de $S$ y regresamos al planteamiento original.
+
+$VPA = C \times S \rightarrow VPA = C\dfrac{1-(1+i)^{-n}}{i}$.
 \end{itemize}
 
 \newpage
@@ -129,21 +137,73 @@ $VP = CS \rightarrow VP = C\,\dfrac{1-(1+i)^{-n}}{i}$.
 # Valor futuro de una anualidad ordinaria (pagos al final).
 
 \begin{itemize}
-\item Partimos del valor presente.
+\item Partimos del valor presente de la anualidad.
 
-$VP = C\,\dfrac{1-(1+i)^{-n}}{i}$.
+$VPA = C\dfrac{1-(1+i)^{-n}}{i}$.
 
-\item Llevamos $VP$ al final del periodo $n$.
+\item Llevamos $VPA$ al final del periodo $n$.
 
-$VF = VP(1+i)^n$.
+$VFA = VPA(1+i)^n$.
 
-\item Sustituimos $VP$.
+\item Sustituimos $VPA$.
 
-$VF = \left(C\,\dfrac{1-(1+i)^{-n}}{i}\right)(1+i)^n$.
+$VFA = C \dfrac{(1-(1+i)^{-n})(1+i)^n}{i}$.
 
-\item Simplificamos usando $(1+i)^n(1+i)^{-n}=1$.
+\item Simplificamos.
 
-$VF = C\,\dfrac{(1+i)^n - 1}{i}$.
+$VFA = C\dfrac{(1+i)^n - 1}{i}$.
+\end{itemize}
+
+\newpage
+
+# Valor presente de una anualidad anticipada.
+
+\begin{itemize}
+\item Partimos del valor presente de la anualidad ordinaria.
+
+$VPA=\dfrac{C}{(1+i)}+\dfrac{C}{(1+i)^2}+\cdots+\dfrac{C}{(1+i)^n}$.
+
+\item Definimos el valor presente de la anualidad anticipada.
+
+$VPA_{ant}=C+\dfrac{C}{(1+i)}+\cdots+\dfrac{C}{(1+i)^{n-1}}$.
+
+\item Re-escribimos la ordinaria.
+
+$VPA=\dfrac{1}{(1+i)}\left(C+\dfrac{C}{(1+i)}+\cdots+\dfrac{C}{(1+i)^{n-1}}\right) \rightarrow \dfrac{VPA_{ant}}{(1+i)}$
+
+\item En resumen.
+
+$VPA_{ant}=VPA(1+i)$.
+
+$VPA = C\dfrac{1-(1+i)^{-n}}{i}$.
+
+\end{itemize}
+
+\newpage
+
+# Valor futuro de una anualidad anticipada.
+
+\begin{itemize}
+
+\item Partimos del valor futuro de la anualidad ordinaria. El último pago en $t=n$ no capitaliza, queda $C$.
+
+$VFA=C(1+i)^{n-1}+C(1+i)^{n-2}+\cdots+C(1+i)+C$.
+
+\item Definimos el valor futuro de la anualidad anticipada.
+
+$VFA_{ant}=C(1+i)^n+C(1+i)^{n-1}+\cdots+C(1+i)^2+C(1+i)$.
+
+\item Re-escribimos la anticipada.
+
+$VFA_{ant}=(1+i)\left(C(1+i)^{n-1}+C(1+i)^{n-2}+\cdots+C\right) \rightarrow (1+i)VFA$
+
+\item En resumen.
+
+$VFA_{ant}=VFA(1+i)$.
+
+$VFA = C\dfrac{(1+i)^n - 1}{i}$.
+
+
 \end{itemize}
 
 \newpage
@@ -153,15 +213,15 @@ $VF = C\,\dfrac{(1+i)^n - 1}{i}$.
 \begin{itemize}
 \item Planteamiento (pago fijo $C$ cada periodo, tasa $i$, duración infinita).
 
-$VP = \dfrac{C}{1+i} + \dfrac{C}{(1+i)^2} + \dfrac{C}{(1+i)^3} + \cdots$.
+$VPP = \dfrac{C}{1+i} + \dfrac{C}{(1+i)^2} + \dfrac{C}{(1+i)^3} + \cdots$.
 
 \item Factorizamos $C$ y definimos $q=\dfrac{1}{1+i}$.
 
-$VP = C\left[\dfrac{1}{1+i} + \dfrac{1}{(1+i)^2} + \cdots \right]$
+$VPP = C\left[\dfrac{1}{1+i} + \dfrac{1}{(1+i)^2} + \cdots \right]$
 
-$\rightarrow VP = C\left[q + q^2 + q^3 + \cdots\right]$.
+$VPP = C\left[q + q^2 + q^3 + \cdots\right]$.
 
-\item Definimos $S$:
+\item Definimos $S$.
 
 $S = q + q^2 + q^3 + \cdots$
 
@@ -169,17 +229,21 @@ $qS = q^2 + q^3 + q^4 + \cdots$
 
 $S - qS = (q + q^2 + q^3 + \cdots) - (q^2 + q^3 + q^4 + \cdots)$
 
-$\rightarrow S - qS = q \rightarrow S(1-q) = q$
+$S - qS = q \rightarrow S(1-q) = q$
 
-$\rightarrow S = \dfrac{q}{1-q}$.
+$S = \dfrac{q}{1-q}$.
 
-\item Sustituimos $q=\dfrac{1}{1+i}$, y $(1-q) = 1-\dfrac{1}{1+i}=\dfrac{i}{1+i}$:
+\item Sustituimos $q=(1+i)^{-1}$, y $(1-q) = i(1+i)^{-1}$.
 
-$S=\dfrac{\frac{1}{1+i}}{\frac{i}{1+i}}=\dfrac{1}{i}$.
+$S=\dfrac{(1+i)^{-1}}{i(1+i)^{-1}}$
 
-\item Finalmente:
+$S=\dfrac{1}{i}$.
 
-$VP = C\,S \rightarrow VP = \dfrac{C}{i}$.
+\item Finalmente.
+
+$VPP = C\times S $
+
+$VPP = \dfrac{C}{i}$.
 \end{itemize}
 
 \newpage

@@ -156,6 +156,8 @@ portfolio_series <- function(data, weights, label, start_date) {
 
 # Riesgo-rendimiento: 10 activos individuales.
 
+Valores en unidades decimales.
+
 ```{r}
 stats <- asset_stats(monthly_returns) |>
   arrange(-SR) |>
@@ -166,7 +168,7 @@ stats <- asset_stats(monthly_returns) |>
 
 # Cartera de mínima varianza global.
 
-Sea $n$ el número de activos. Definimos:
+Sea $n$ el número de activos y $R$ sus rendimientos. Definimos:
 \[
 \Sigma := \operatorname{Var}(R)\in\mathbb{R}^{n\times n},\qquad
 \mu := \mathbb{E}[R]\in\mathbb{R}^{n},\qquad
@@ -244,12 +246,12 @@ g := \Sigma^{-1}\frac{c\,\mathbf{1}-b\,\mu}{d},
 h := \Sigma^{-1}\frac{a\,\mu-b\,\mathbf{1}}{d}.
 \]
 
-Entonces, para cualquier objetivo $r^*$, los pesos se obtienen como:
+Entonces, para un objetivo $r^*$, los pesos se obtienen como:
 \[
 w(r^*)=g+h\,r^*.
 \]
 
-Para un vector de pesos $w$:
+Para cualquier vector de pesos $w$:
 \[
 \mathbb{E}[R_p]=w^\top\mu,
 \qquad

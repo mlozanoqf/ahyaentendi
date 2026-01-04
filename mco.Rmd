@@ -1,0 +1,203 @@
+---
+title: "\\textbf{Regresión lineal simple.}"
+subtitle: "Mínimos cuadrados ordinarios."
+author: "Dr. Martín Lozano \\texttt{https://mlozanoqf.github.io/}"
+date: "`r gsub('a\\. m\\.', 'a.m.', gsub('p\\. m\\.', 'p.m.', format(Sys.time(), '%d de %B de %Y, %I:%M %p')))`"
+output:
+  pdf_document:
+    latex_engine: xelatex
+    number_sections: true
+    highlight: tango
+header-includes:
+  - \usepackage{xcolor}
+  - \usepackage{fvextra}
+  - |
+      \DefineVerbatimEnvironment{Highlighting}{Verbatim}{
+        breaklines,
+        commandchars=\\\{\},
+        numbers=left,
+        numbersep=8pt,
+        fontsize=\small,
+        firstnumber=1,
+        xleftmargin=1.5em,
+        frame=none
+      }
+      % ← Estilo de los números de línea (más visibles)
+      \renewcommand{\theFancyVerbLine}{\textcolor{black}{\bfseries\small\arabic{FancyVerbLine}}}
+  - \usepackage{amssymb}
+  - \usepackage{amsmath}
+---
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+library(knitr)
+
+tabla <- matrix(
+  c("$\\times$", "$\\checkmark$", "$\\times$",
+    "$\\times$", "$\\checkmark$", "$\\times$",
+    "$\\times$", "$\\checkmark$", "$\\times$"),
+  nrow = 3, byrow = TRUE
+)
+colnames(tabla) <- c("Fundamental", "Intermedio", "Especializado")
+rownames(tabla) <- c("Finanzas", "Estadística", "R")
+
+kable(tabla, escape = FALSE, align = c("c","c","c"))
+
+```
+
+
+
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  class.source = "numberLines",   # activa numeración en todos los chunks con echo=TRUE
+  Sys.setlocale("LC_TIME", "es_ES.UTF-8")
+)
+```
+
+\newpage
+\Large 
+
+# Introducción.
+
+\begin{itemize}
+  \item Se descargan precios históricos de 10 acciones y se calculan retornos mensuales. Con esos retornos se estiman medias, volatilidades y razón de Sharpe por activo.
+  \item Se construye la frontera eficiente media–varianza y se comparan tres carteras. Finalmente, se evalúa la robustez de riesgo y rendimiento con un block bootstrap de 6 meses (500 réplicas).
+  \end{itemize}
+
+\newpage
+
+
+# Caso determinístico.
+
+Planteamiento (costos fijos + proporción variable fija)
+
+**Escenario (determinístico):**  
+La empresa *define* su estructura de costos como:
+
+- $F = 10{,}000$
+- $p = 0.60$
+
+por lo que:
+
+$$C = 10{,}000 + 0.60V$$
+
+Datos determinísticos.
+
+Tomemos distintos niveles de ventas $V$ (por mes) y calculemos el costo total $C$ con esa regla:
+
+$$
+\begin{array}{c|r|r}
+\text{Obs} & V \;(\text{ventas}) & C \;(\text{costo total}) \\
+\hline
+1 & 100{,}000 & 70{,}000 \\
+2 & 150{,}000 & 100{,}000 \\
+3 & 200{,}000 & 130{,}000 \\
+4 & 250{,}000 & 160{,}000 \\
+5 & 300{,}000 & 190{,}000 \\
+6 & 350{,}000 & 220{,}000 \\
+\end{array}
+$$
+
+
+
+
+
+
+
+
+
+Visualización (relación perfectamente lineal)
+
+```{r}
+library(ggplot2)
+
+# Datos determinísticos según la "regla" de la empresa
+tabla_det <- data.frame(
+V = c(100000, 150000, 200000, 250000, 300000, 350000),
+C = c(70000, 100000, 130000, 160000, 190000, 220000)
+)
+
+tabla_det
+
+ggplot(tabla_det, aes(x = V, y = C)) +
+  geom_point(size = 2) +
+  geom_line() +
+  labs(
+    title = "Caso determinístico: C = 10,000 + 0.60 V",
+    x = "Ventas (V)",
+    y = "Costo total (C)"
+  )
+```
+
+
+$$
+\begin{array}{c|r|r}
+\text{Obs} & V \;(\text{ventas}) & C \;(\text{costo total observado}) \\
+\hline
+1 & 100{,}000 & 71{,}600 \\
+2 & 150{,}000 & 105{,}900 \\
+3 & 200{,}000 & 121{,}400 \\
+4 & 250{,}000 & 167{,}500 \\
+5 & 300{,}000 & 189{,}500 \\
+6 & 350{,}000 & 218{,}600 \\
+\end{array}
+$$
+
+```{r}
+tabla_noise <- data.frame(
+V = c(50000, 100000, 150000, 200000, 250000, 300000, 350000),
+C = c(36000, 59500, 89000, 125000, 140000, 165000, 188000)
+)
+
+ggplot(tabla_noise, aes(x = V, y = C)) +
+  geom_point(size = 2) +
+  labs(
+    title = "Estimación",
+    x = "Ventas (V)",
+    y = "Costo total (C)"
+  )
+```
+
+```{r}
+# (opcional) para verificar que MCO da un poco más de costo fijo y un poco menos de costo variable:
+m_ruido <- lm(C ~ V, data = tabla_noise)
+summary(m_ruido)
+coef(m_ruido)
+# Espera algo cercano a:
+#  (Intercept) ≈ 13,000  y  pendiente ≈ 0.59  (menor que 0.60)
+```
+
+
+```{r}
+# Gráfico: puntos + línea estimada por MCO
+ggplot(tabla_noise, aes(x = V, y = C)) +
+  geom_point(size = 2, alpha = 0.9) +
+  geom_smooth(
+    method = "lm",
+    se = FALSE,
+    fullrange = TRUE
+  ) +
+  scale_x_continuous(limits = c(0, max(tabla_noise$V))) +
+  labs(
+    title = "Costos vs Ventas (con incertidumbre): línea estimada por MCO",
+    x = "Ventas (V)",
+    y = "Costo total observado (C)"
+  )
+
+```
+
+
+\newpage
+# Conclusión.
+
+\Large 
+
+\begin{itemize}
+  \item Los rendimientos acumulados permiten comparar desempeño histórico más allá de un solo punto riesgo–retorno.
+  \item El block bootstrap muestra qué tan estables son las carteras ante cambios plausibles del periodo.
+\end{itemize}
+
