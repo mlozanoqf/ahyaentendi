@@ -65,7 +65,7 @@ knitr::opts_chunk$set(
 
 \begin{itemize}
   \item Este documento ilustra la construcción, implementación y evaluación de un robo-trader sencillo para AAPL.
-  \item La sencillez radica en que la señal de trading se basa únicamente en cruces del precio de cierre con un promedio móvil simple de 3 días (MA3), generando órdenes buy/sell.
+  \item La sencillez radica en que la señal de trading se basa únicamente en cruces del precio de cierre con un promedio móvil simple de 3 días SMA3, generando órdenes buy/sell.
   \item El desempeño se compara contra benchmarks y contra estrategias alternativas.
   \item Se reportan ganancia simple, número de operaciones y se documenta el proceso mediante gráficos y bitácoras de operaciones.
   \end{itemize}
@@ -109,12 +109,10 @@ final_date <- prices_ma3 |>
 rt_data <- prices_ma3 |>
   filter(date >= start_date - days(1), date <= final_date) |>
   mutate(sign_diff = sign(close - ma3),
-         lag_sign  = lag(sign_diff),
-         cross     = !is.na(sign_diff) & !is.na(lag_sign) & sign_diff != lag_sign,
-         signal    = case_when(
-           cross & sign_diff > lag_sign ~ "buy",
-           cross & sign_diff < lag_sign ~ "sell",
-           TRUE ~ "hold"))
+         lag_sign = lag(sign_diff),
+         cross = !is.na(sign_diff) & !is.na(lag_sign) & sign_diff != lag_sign,
+         signal = case_when(cross & sign_diff > lag_sign ~ "buy",
+                            cross & sign_diff < lag_sign ~ "sell", TRUE ~ "hold"))
 
 signals_rt <- rt_data |>
   filter(signal %in% c("buy", "sell"), date >= start_date) |>
@@ -229,7 +227,7 @@ ggplot(aapl_window, aes(x = date, y = close)) +
 
 # Benchmarks.
 
-Hay dos benchmarks naturales que surgen. El primero es buy and hold, que sería una estrategia que no requiere el seguimiento de un criterio inteligente. El segundo es uno tramposo en donde vemos el futuro, vendemos en corto, realizamos la ganancia en el precio más bajo, compramos y vendemos al final, lo que daría una ganancia alta, posiblemente una ganancia máxima. 
+Hay dos benchmarks naturales que surgen. El primero es buy and hold, que sería una estrategia que no requiere el seguimiento de un criterio inteligente. El segundo es uno *tramposo* en donde vemos el futuro, vendemos en corto, realizamos la ganancia en el precio más bajo, compramos y vendemos al final, lo que daría una ganancia alta, posiblemente una ganancia máxima. 
 
 ```{r}
 first_2025 <- prices_ma3 |> filter(date >= as.Date("2025-01-01")) |>
@@ -293,7 +291,7 @@ La ganancia total de la estrategia trampa es: 71.43 + 101.25 = 172.68.
 
 \newpage
 
-# Definición de las señales de compra y venta.
+# ¿Cómo decide el robo-trader?
 
 El robo-trader usa un promedio móvil simple SMA de 3 días $\text{SMA3}_t$ sobre el precio de cierre $P_t$:
 $\text{SMA3}_t = \frac{1}{3}\big(P_t + P_{t-1} + P_{t-2}\big)$,
@@ -301,7 +299,7 @@ definido cuando existen los tres cierres necesarios; por ello, los primeros 2 d�
 
 Definimos $d_t = P_t - \text{SMA3}_t$.
 
-La $\text{SMA3}_t$ funciona como un “nivel de referencia” de corto plazo. El signo de $d_t$ indica en qué lado está el precio respecto a ese nivel:
+La $\text{SMA3}_t$ funciona como un nivel de referencia de corto plazo. El signo de $d_t$ indica en qué lado está el precio respecto a ese nivel:
 
 - Si $d_t > 0$, el precio está por encima de su promedio reciente. Se puede interpretar como un sesgo alcista de corto plazo.
 - Si $d_t < 0$, el precio está por debajo de su promedio reciente. Se puede interpretar como un sesgo bajista de corto plazo.
@@ -318,6 +316,8 @@ El robot opera únicamente cuando detecta un *cambio de régimen*: es decir, cua
 
 - Se evalúa la señal una vez por día.
 
+- Las operaciones se asumen ejecutadas al precio de cierre del día de la señal.
+
 - El robot siempre mantiene una posición. Un `sell` cierra un largo y abre un corto; un `buy` cierra un corto (buy-to-cover) y abre un largo. No existe estado “cash” entre señales.
 
 - Se ignoran comisiones, bid-ask spread, slippage y costos de préstamo/financiamiento.
@@ -330,21 +330,28 @@ El robot opera únicamente cuando detecta un *cambio de régimen*: es decir, cua
 
 # Visualización del promedio móvil.
 
+El promedio móvil parece adelantarse a los precios de cierre.
+
 ```{r}
 ggplot(prices_ma3, aes(date)) +
   geom_line(aes(y = close, color = "Cierre"), linewidth = 1.5, alpha = 0.5) +
-  geom_line(aes(y = ma3,   color = "MA 3 días"), linewidth = 0.7, na.rm = TRUE) +
+  geom_line(aes(y = ma3, color = "SMA 3 días"), linewidth = 0.7, na.rm = TRUE) +
   geom_vline(xintercept = as.Date("2025-01-02"), linetype = "dashed", color = "gray40") +
   scale_color_manual(name = "Serie",
-                       values = c("Cierre" = "blue", "MA 3 días" = "red")) +
+                       values = c("Cierre" = "blue", "SMA 3 días" = "red")) +
   labs(title = "AAPL: Cierre vs. Promedio Móvil 3 días.",
        x = "Fecha", y = "Precio (USD)") +
-  theme_minimal(base_size = 12)
+  theme_minimal(base_size = 12) +
+  theme(legend.position = c(0.02, 0.99), legend.justification = c(0, 1),
+    legend.background = element_rect(fill = "white", color = "gray70", linewidth = 0.2),
+    legend.key = element_rect(fill = "white", color = NA))
 ```
 
 \newpage
 
 # Promedio móvil, zoom.
+
+Un acercamiento para visualizar mejor el papel del promedio móvil.
 
 ```{r}
 # Ventana del zoom
@@ -355,10 +362,8 @@ end_zoom   <- as.Date("2025-12-19")
 signals_short <- prices_ma3 |>
   mutate(sign_diff = sign(close - ma3), lag_sign  = lag(sign_diff),
          cross = !is.na(sign_diff) & !is.na(lag_sign) & sign_diff != lag_sign,
-         signal    = case_when(
-           cross & sign_diff > lag_sign ~ "buy",
-           cross & sign_diff < lag_sign ~ "sell",
-           TRUE ~ NA_character_)) |>
+         signal = case_when(cross & sign_diff > lag_sign ~ "buy",
+                            cross & sign_diff < lag_sign ~ "sell", TRUE ~ NA_character_)) |>
   filter(date >= start_zoom, date <= end_zoom, !is.na(signal)) |>
   transmute(date, signal, price = close)
 
@@ -368,7 +373,7 @@ aapl_ma_short <- prices_ma3 |>
   
 ggplot(aapl_ma_short, aes(date)) +
   geom_line(aes(y = close, color = "Cierre"), linewidth = 1) +
-  geom_line(aes(y = ma3,   color = "SMA 3 días"), linewidth = 1, na.rm = TRUE) +
+  geom_line(aes(y = ma3, color = "SMA 3 días"), linewidth = 1, na.rm = TRUE) +
   geom_text(data = signals_short,
             aes(y = price, label = if_else(signal == "buy", "B", "S")),
             vjust = -0.6, fontface = "bold", color = "black", size = 5) +
@@ -377,34 +382,34 @@ ggplot(aapl_ma_short, aes(date)) +
   labs(title = "AAPL: Cierre vs. SMA 3 días. Cinco señales.",
        x = "Fecha", y = "Precio (USD)") +
   theme_minimal(base_size = 12) +
-  theme(legend.position = c(0.98, 0.98),
-    legend.justification = c(1, 1),       
+  theme(legend.position = c(0.98, 0.98), legend.justification = c(1, 1),       
     legend.background = element_rect(fill = "white", color = NA),
     legend.key = element_rect(fill = "white", color = NA))
 ```
 
-- 21-nov: `buy` a 271.49. Se abre posición larga. PnL realizado en este punto: 0. PnL acumulado previo: 24.89.
+- **21-nov:** `buy` a 271.49. Se abre posición larga. PnL realizado en este punto: 0. PnL acumulado previo: 24.89.
 
-- 03-dic: `sell` a 284.15. Se cierra el largo y, en esquema always-in, se abre corto. PnL del tramo largo: 284.15 − 271.49 = 12.66. PnL acumulado: 24.89 + 12.66 = 37.55.
+- **03-dic:** `sell` a 284.15. Se cierra el largo y, en esquema always-in, se abre corto. PnL del tramo largo: 284.15 − 271.49 = 12.66. PnL acumulado: 24.89 + 12.66 = 37.55.
 
-- 10-dic: `buy` a 278.78. Se cierra el corto abierto el 03-dic y se abre largo. PnL del tramo corto: 284.15 − 278.78 = 5.37. PnL acumulado: 37.55 + 5.37 = 42.92.
+- **10-dic:** `buy` a 278.78. Se cierra el corto abierto el 03-dic y se abre largo. PnL del tramo corto: 284.15 − 278.78 = 5.37. PnL acumulado: 37.55 + 5.37 = 42.92.
 
-- 12-dic: `sell` a 278.28. Se cierra el largo abierto el 10-dic y se abre corto. PnL del tramo largo: 278.28 − 278.78 = −0.50. PnL acumulado: 42.92 − 0.50 = 42.42.
+- **12-dic:** `sell` a 278.28. Se cierra el largo abierto el 10-dic y se abre corto. PnL del tramo largo: 278.28 − 278.78 = −0.50. PnL acumulado: 42.92 − 0.50 = 42.42.
 
-- 19-dic: `buy` a 273.67. Se cierra el corto abierto el 12-dic y se abre largo. PnL del tramo corto: 278.28 − 273.67 = 4.61. PnL acumulado: 42.42 + 4.61 = 47.03.
+- **19-dic:** `buy` a 273.67. Se cierra el corto abierto el 12-dic y se abre largo. PnL del tramo corto: 278.28 − 273.67 = 4.61. PnL acumulado: 42.42 + 4.61 = 47.03.
 
 
 \newpage
 
 # Descripción de 6 estrategias.
 
-- Buy & hold: compras AAPL al primer cierre de 2025 y vendes el 12/dic/2025; PnL = diferencia entre esos cierres, sin trades intermedios.
-- Trampa (short + long): abres corto al primer cierre de 2025, cubres y giras a largo en el mínimo anual (hasta 19/dic/2025) y cierras largo al final; capturas la caída y luego el rebote.
-- Robo-trader: opera cada cruce cierre vs SMA3; cambia de lado en cada señal y liquida al cierre final; PnL suma cada tramo entre señales consecutivas.
-- Aleatoria: 83 señales buy/sell alternadas en fechas al azar; PnL con la misma regla de cerrar y reabrir en cada señal, cierre forzado al final.
-- Robo-omnisciente (benchmark ex-post): genera señales con la regla de cruces, pero ejecuta únicamente aquellas cuyo tramo posterior resulta con PnL positivo. Es un “oráculo” no implementable en tiempo real porque filtra operaciones usando información futura. Si aparecen señales del mismo tipo de forma consecutiva (buy–buy o sell–sell), se fuerza un cierre y reapertura al nuevo precio para que el PnL contabilice el tramo intermedio entre ambas ejecuciones.
-- Robo-dumb (benchmark ex-post): usa la misma regla de cruces, pero ejecuta únicamente aquellas entradas cuyo tramo posterior resulta con PnL negativo. También es no implementable en tiempo real por depender de información futura. Ante señales consecutivas del mismo tipo, aplica el mismo mecanismo de cierre y reapertura para que el PnL refleje el tramo entre precios y capture correctamente los tramos desfavorables.
+- **Buy & hold:** compras AAPL al primer cierre de 2025 y vendes el 12/dic/2025; PnL = diferencia entre esos cierres, sin trades intermedios.
+- **Trampa:** abres corto al primer cierre de 2025, cubres y giras a largo en el mínimo anual (hasta 19/dic/2025) y cierras largo al final; capturas la caída y luego el rebote.
+- **Robo-trader:** opera cada cruce cierre vs SMA3; cambia de lado en cada señal y liquida al cierre final; PnL suma cada tramo entre señales consecutivas.
+- **Aleatoria:** 83 señales buy/sell alternadas en fechas al azar; PnL con la misma regla de cerrar y reabrir en cada señal, cierre forzado al final.
+- **Robo-omnisciente (benchmark ex-post):** genera señales con la regla de cruces, pero ejecuta únicamente aquellas cuyo tramo posterior resulta con PnL positivo. Es un *oráculo* no implementable en tiempo real porque filtra operaciones usando información futura. Si aparecen señales del mismo tipo de forma consecutiva (buy–buy o sell–sell), se fuerza un cierre y reapertura al nuevo precio para que el PnL contabilice el tramo intermedio entre ambas ejecuciones.
+- **Robo-dumb (benchmark ex-post):** usa la misma regla de cruces, pero ejecuta únicamente aquellas entradas cuyo tramo posterior resulta con PnL negativo. También es no implementable en tiempo real por depender de información futura. Ante señales consecutivas del mismo tipo, aplica el mismo mecanismo de cierre y reapertura para que el PnL refleje el tramo entre precios y capture correctamente los tramos desfavorables.
 
+*Al filtrar señales ex-post (quedándonos solo con las ganadoras/perdedoras), es posible que en la secuencia filtrada aparezcan dos señales consecutivas del mismo tipo (buy–buy o sell–sell), aunque en la secuencia original de cruces eso no ocurra. En esos casos, se aplica la convención de ‘cierre y reapertura’ al nuevo precio para contabilizar el tramo intermedio.*
 
   \newpage
 
@@ -414,8 +419,7 @@ ggplot(aapl_ma_short, aes(date)) +
 set.seed(123)
 prices <- prices_ma3
 
-P0 <- prices |> filter(date >= as.Date("2025-01-01")) |> slice_head(n = 1) |>
-  pull(close)
+P0 <- prices |> filter(date >= as.Date("2025-01-01")) |> slice_head(n = 1) |> pull(close)
 bh_sell_px <- prices |> filter(date <= as.Date("2025-12-12")) |> slice_tail(n = 1) |> 
   pull(close)
 Pmin <- prices |> filter(date >= as.Date("2025-01-01"), date <= final_date) |>
@@ -423,7 +427,7 @@ Pmin <- prices |> filter(date >= as.Date("2025-01-01"), date <= final_date) |>
 Pend <- prices |> filter(date == final_date) |> pull(close)
 
 buy_hold_gain <- bh_sell_px - P0
-trampa_gain   <- (P0 - Pmin) + (Pend - Pmin)
+trampa_gain <- (P0 - Pmin) + (Pend - Pmin)
 
 trading_days <- prices |>
   filter(date >= start_date, date <= final_date) |>
@@ -434,8 +438,7 @@ start_side <- sample(c("buy", "sell"), 1)
 random_signals_vec <- if (start_side == "buy") rep(c("buy", "sell"), length.out = 83) else 
   rep(c("sell", "buy"), length.out = 83)
 
-signals_rand <- tibble(date = random_dates,
-                       signal = random_signals_vec) |>
+signals_rand <- tibble(date = random_dates, signal = random_signals_vec) |>
   left_join(prices |> select(date, close), by = "date") |>
   rename(price = close) |>
   arrange(date)
@@ -452,10 +455,8 @@ omn_trades <- nrow(signals_omniscient)
 dumb_trades <- nrow(signals_dumb)
 
 strategies <- tibble(estrategia = c("Buy & hold", "Trampa", "Robo-trader",
-                                    "Aleatoria", "Robo-omnisciente",
-                                    "Robo-dumb"),
-trades = c(NA_integer_, NA_integer_, rt_trades, rand_trades, omn_trades, 
-           dumb_trades),
+                                    "Aleatoria", "Robo-omnisciente", "Robo-dumb"),
+trades = c(NA_integer_, NA_integer_, rt_trades, rand_trades, omn_trades, dumb_trades),
 ganancia_simple = c(buy_hold_gain, trampa_gain, robo_trader_gain, random_gain,
                     robo_omnisciente_gain, robo_dumb_gain),
 ganancia_por_trade = ganancia_simple / trades)
@@ -499,6 +500,8 @@ ggplot(rt_data, aes(date, close)) +
 
 # Visualización del Robo-omnisciente.
 
+Un robot que lo sabe todo y nunca se equivoca. 
+
 ```{r}
 signals_plot_omn <- signals_omniscient |>
   mutate(correcto = "Correcta")
@@ -519,6 +522,8 @@ ggplot(rt_data, aes(date, close)) +
 \newpage
 
 # Visualización del Robo-dumb.
+
+Un robot que lo sabe todo y siempre se equivoca. 
 
 ```{r}
 signals_plot_dumb <- signals_dumb |>
@@ -542,6 +547,8 @@ ggplot(rt_data, aes(date, close)) +
 
 # Bitácora Robo-trader.
 
+El robo-trader se equivoca pero a pesar de eso hace dinero.
+
 ```{r}
 bitacora_num <- make_bitacora(signals_rt, final_date, Pend) |>
   mutate(price = round(price, 2),
@@ -555,15 +562,17 @@ bitacora_num |>
 ```
 
 
-- 03-dic: `sell` a 284.15. Se abre posición corta. PnL realizado en este punto: 0. PnL acumulado previo: 37.55.
-- 10-dic: `buy` a 278.78. Se cierra el corto abierto el 03-dic y se abre largo. PnL del tramo corto: 284.15 − 278.78 = 5.37. PnL acumulado: 37.55 + 5.37 = 42.92.
-- 12-dic: `sell` a 278.28. Se cierra el largo abierto el 10-dic y se abre corto. PnL del tramo largo: 278.28 − 278.78 = −0.50. PnL acumulado: 42.92 − 0.50 = 42.42.
-- 19-dic: `buy` a 273.67. Se cierra el corto abierto el 12-dic y se abre largo. PnL del tramo corto: 278.28 − 273.67 = 4.61. PnL acumulado: 42.42 + 4.61 = 47.03.
-- 19-dic: `final_close` a 273.67. Se cierra el largo abierto el 19-dic. PnL del tramo largo: 273.67 − 273.67 = 0.00. PnL acumulado final: 47.03.
+- **03-dic:** `sell` a 284.15. Se abre posición corta. PnL realizado en este punto: 0. PnL acumulado previo: 37.55.
+- **10-dic:** `buy` a 278.78. Se cierra el corto abierto el 03-dic y se abre largo. PnL del tramo corto: 284.15 − 278.78 = 5.37. PnL acumulado: 37.55 + 5.37 = 42.92.
+- **12-dic:** `sell` a 278.28. Se cierra el largo abierto el 10-dic y se abre corto. PnL del tramo largo: 278.28 − 278.78 = −0.50. PnL acumulado: 42.92 − 0.50 = 42.42.
+- **19-dic:** `buy` a 273.67. Se cierra el corto abierto el 12-dic y se abre largo. PnL del tramo corto: 278.28 − 273.67 = 4.61. PnL acumulado: 42.42 + 4.61 = 47.03.
+- **19-dic:** `final_close` a 273.67. Se cierra el largo abierto el 19-dic. PnL del tramo largo: 273.67 − 273.67 = 0.00. PnL acumulado final: 47.03.
 
 \newpage
 
 # Resumen Robo-trader.
+
+Una matriz de confusión.
 
 ```{r}
 confusion <- signal_outcomes |>
@@ -577,6 +586,8 @@ confusion
 \newpage
 
 # Bitácora estrategia aleatoria.
+
+El número de señales aleatorias corresponde al número de señales del robo-trader. 
 
 ```{r}
 bitacora_aleatoria_num <- make_bitacora(signals_rand, final_date, Pend) |>
@@ -594,51 +605,53 @@ bitacora_aleatoria_num |>
 
 # Bitácora Robo-omnisciente.
 
+Equivalente al modelo perfecto.
+
 ```{r}
 bitacora_omnisciente_num <- make_bitacora(signals_omniscient, final_date, Pend) |>
-  mutate(price = round(price, 2),
-         flujo = round(flujo, 2),
-         PnL = round(PnL, 2),
-         PnL_acum = round(PnL_acum, 2))
+  mutate(price = round(price, 2), flujo = round(flujo, 2),
+         PnL = round(PnL, 2), PnL_acum = round(PnL_acum, 2))
 
 bitacora_omnisciente_num |>
   show_head_tail(n = 5) |>
   kable(digits = c(NA, NA, 2, 2, 2, 2))
 ```
 
-- 13-nov: `sell` a 272.95. Se abre posición corta. PnL realizado en este punto: 0. PnL acumulado previo: 164.40.
-- 21-nov: `buy` a 271.49. Se cierra el corto abierto el 13-nov y se abre largo. PnL del tramo corto: 272.95 − 271.49 = 1.46. PnL acumulado: 164.40 + 1.46 = 165.86.
-- 03-dic: `sell` a 284.15. Se cierra el largo abierto el 21-nov y se abre corto. PnL del tramo largo: 284.15 − 271.49 = 12.66. PnL acumulado: 165.86 + 12.66 = 178.52.
-- 12-dic: `sell` a 278.28. Señal repetida; se cierra el corto abierto el 03-dic y se reabre corto. PnL del tramo corto: 284.15 − 278.28 = 5.87. PnL acumulado: 178.52 + 5.87 = 184.39.
-- 19-dic: `final_close` a 273.67. Se cierra el corto abierto el 12-dic. PnL del tramo corto: 278.28 − 273.67 = 4.61. PnL acumulado final: 189.00.
+- **13-nov:** `sell` a 272.95. Se abre posición corta. PnL realizado en este punto: 0. PnL acumulado previo: 164.40.
+- **21-nov:** `buy` a 271.49. Se cierra el corto abierto el 13-nov y se abre largo. PnL del tramo corto: 272.95 − 271.49 = 1.46. PnL acumulado: 164.40 + 1.46 = 165.86.
+- **03-dic:** `sell` a 284.15. Se cierra el largo abierto el 21-nov y se abre corto. PnL del tramo largo: 284.15 − 271.49 = 12.66. PnL acumulado: 165.86 + 12.66 = 178.52.
+- **12-dic:** `sell` a 278.28. Señal repetida; se cierra el corto abierto el 03-dic y se reabre corto. PnL del tramo corto: 284.15 − 278.28 = 5.87. PnL acumulado: 178.52 + 5.87 = 184.39.
+- **19-dic:** `final_close` a 273.67. Se cierra el corto abierto el 12-dic. PnL del tramo corto: 278.28 − 273.67 = 4.61. PnL acumulado final: 189.00.
 
 
 \newpage
 
 # Bitácora Robo-dumb.
 
+Equivalente al anti-modelo.
+
 ```{r}
 bitacora_dumb_num <- make_bitacora(signals_dumb, final_date, Pend) |>
-  mutate(price = round(price, 2),
-         flujo = round(flujo, 2),
-         PnL = round(PnL, 2),
-         PnL_acum = round(PnL_acum, 2))
+  mutate(price = round(price, 2), flujo = round(flujo, 2),
+         PnL = round(PnL, 2), PnL_acum = round(PnL_acum, 2))
 
 bitacora_dumb_num |>
   show_head_tail(n = 5) |>
   kable(digits = c(NA, NA, 2, 2, 2, 2))
 ```
 
-- 19-nov: `buy` a 268.56. Se abre posición larga. PnL realizado en este punto: 0. PnL acumulado previo: −225.12.
-- 20-nov: `sell` a 266.25. Se cierra el largo abierto el 19-nov y se abre corto. PnL del tramo largo: 266.25 − 268.56 = −2.31. PnL acumulado: −225.12 − 2.31 = −227.43.
-- 10-dic: `buy` a 278.78. Se cierra el corto abierto el 20-nov y se abre largo. PnL del tramo corto: 266.25 − 278.78 = −12.53. PnL acumulado: −227.43 − 12.53 = −239.96.
-- 19-dic: `buy` a 273.67. Señal repetida; se cierra el largo abierto el 10-dic y se reabre largo. PnL del tramo largo: 273.67 − 278.78 = −5.11. PnL acumulado: −239.96 − 5.11 = −245.07.
-- 19-dic: `final_close` a 273.67. Se cierra el largo abierto el 19-dic. PnL del tramo largo: 273.67 − 273.67 = 0.00. PnL acumulado final: −245.07.
+- **19-nov:** `buy` a 268.56. Se abre posición larga. PnL realizado en este punto: 0. PnL acumulado previo: −225.12.
+- **20-nov:** `sell` a 266.25. Se cierra el largo abierto el 19-nov y se abre corto. PnL del tramo largo: 266.25 − 268.56 = −2.31. PnL acumulado: −225.12 − 2.31 = −227.43.
+- **10-dic:** `buy` a 278.78. Se cierra el corto abierto el 20-nov y se abre largo. PnL del tramo corto: 266.25 − 278.78 = −12.53. PnL acumulado: −227.43 − 12.53 = −239.96.
+- **19-dic:** `buy` a 273.67. Señal repetida; se cierra el largo abierto el 10-dic y se reabre largo. PnL del tramo largo: 273.67 − 278.78 = −5.11. PnL acumulado: −239.96 − 5.11 = −245.07.
+- **19-dic:** `final_close` a 273.67. Se cierra el largo abierto el 19-dic. PnL del tramo largo: 273.67 − 273.67 = 0.00. PnL acumulado final: −245.07.
 
 
 \newpage
 
 # Ganancias Robo-trader.
+
+Resumen gráfico.
 
 ```{r}
 ggplot(signal_outcomes |> mutate(PnL_acum = cumsum(replace_na(trade_pnl, 0))),
