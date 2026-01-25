@@ -16,6 +16,8 @@ https://www.youtube.com/@ahyaentendi
 1. Cartera óptima con rendimiento objetivo. `port_robj`
 1. Enfoque gráfico de la probabilidad de default (próximamente).
 1. Regresión lineal con mínimos cuadrados ordinarios (próximamente).
+1. Análisis financiero de una empresa real (próximamente).
+1. Los últimos 25 años del S&P500 y tasas de interés (próximamente).
 
 ## Finanzas para no financieros.
 
@@ -24,8 +26,9 @@ https://www.youtube.com/@ahyaentendi
 1. Valor del dinero en el tiempo. `FPNF-vpvf`
 1. Anualidades, crédito y decisiones financieras. `FPNF-an`
 1. Derivaciones matemáticas | Valor del dinero en el tiempo. `FPNF-mathvpvf`
+1. Punto de equilibrio y margen de contribución (próximamente).
 1. Evaluación de proyectos (próximamente).
-1. Acciones y bonos (próximamente).
+1. Mercados financieros: acciones, bonos y tasas (próximamente).
 
 ## Shorts.
 
