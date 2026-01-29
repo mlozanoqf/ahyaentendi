@@ -55,4 +55,6 @@ https://www.youtube.com/@ahyaentendi
 1. 3D histogram of two independent normal variables. `3dhist.m`
 1. US efficient frontier: 5 industry portfolios. `eff5ind.m`
 1. US efficient frontiers: 5 and 12 industry portfolios. `eff512ind.m`
+1. US minimum variance portfolio composition: 5 industry portfolios. `weights5ind.m`
+1. US minimum variance portfolio composition: 10 industry portfolios. `weights10ind.m`
 
