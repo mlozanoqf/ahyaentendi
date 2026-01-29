@@ -44,3 +44,8 @@ https://www.youtube.com/@ahyaentendi
 1. La paradoja del rendimiento máximo.
 
 
+## Visualizaciones, códigos en MATLAB.
+
+1. Clayton Copula: random numbers. `Clayton.m`
+
+
