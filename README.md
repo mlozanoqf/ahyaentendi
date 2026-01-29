@@ -47,5 +47,8 @@ https://www.youtube.com/@ahyaentendi
 ## Visualizaciones, códigos en MATLAB.
 
 1. Clayton Copula: random numbers. `Clayton.m`
+1. Gumbel Copula: random numbers. `Gumbel.m`
+1. Frank Copula: random numbers. `Frank.m`
+1. Random numbers following a multivariate normal distribution. `mvnormalmovie.m`
 
 
