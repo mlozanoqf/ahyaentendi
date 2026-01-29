@@ -18,6 +18,8 @@ https://www.youtube.com/@ahyaentendi
 1. Regresión lineal con mínimos cuadrados ordinarios (próximamente).
 1. Análisis financiero de una empresa real (próximamente).
 1. Los últimos 25 años del S&P500 y tasas de interés (próximamente).
+1. CAPM como modelo de valuación | Estimación y evidencia empírica (próximamente). `capm_aca`
+1. CAPM aplicado | Beta, costo de capital y alpha (próximamente). `capm_prac`
 
 ## Finanzas para no financieros.
 
