@@ -50,5 +50,6 @@ https://www.youtube.com/@ahyaentendi
 1. Gumbel Copula: random numbers. `Gumbel.m`
 1. Frank Copula: random numbers. `Frank.m`
 1. Random numbers following a multivariate normal distribution. `mvnormalmovie.m`
-
+1. Histogram of a normal variable X. `normal.m`
+1. 1000 step version of four Wiener process. `Wiener.m`
 
