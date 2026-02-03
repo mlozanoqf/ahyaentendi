@@ -32,7 +32,7 @@ header-includes:
 library(knitr)
 
 tabla <- matrix(
-  c("$\\times$", "$\\checkmark$", "$\\times$",
+  c("$\\times$", "$\\times$", "$\\checkmark$",
     "$\\times$", "$\\checkmark$", "$\\times$",
     "$\\times$", "$\\checkmark$", "$\\times$"),
   nrow = 3, byrow = TRUE
@@ -64,91 +64,438 @@ knitr::opts_chunk$set(
 # Introducción.
 
 \begin{itemize}
-  \item Se descargan precios históricos de 10 acciones y se calculan retornos mensuales. Con esos retornos se estiman medias, volatilidades y razón de Sharpe por activo.
-  \item Se construye la frontera eficiente media–varianza y se comparan tres carteras. Finalmente, se evalúa la robustez de riesgo y rendimiento con un block bootstrap de 6 meses (500 réplicas).
-  \end{itemize}
+\item Usaremos datos reales y tres enfoques complementarios (1) serie de tiempo; (2) sección cruzada; y (3) Fama--MacBeth, para contrastar la idea central del CAPM: el retorno esperado en exceso debe estar explicado únicamente por la exposición al factor de mercado.
+\item Evaluamos si el riesgo sistemático, medido por $\beta$, organiza los rendimientos esperados. Bajo el CAPM, el retorno esperado en exceso está determinado por la exposición al factor de mercado.
+\item Usamos 10 carteras por tamaño de EE.UU. y el factor $Mkt\!-\!RF$. Trabajamos con retornos en exceso $r_{p,t}=R_{p,t}-R_{f,t}$ y $r_{M,t}=R_{M,t}-R_{f,t}$; en la práctica, $r_{M,t}$ corresponde al factor $Mkt\!-\!RF$ de Kenneth French.
+\item Las series son mensuales y están expresadas en porcentajes.
+\item Serie de tiempo: estimamos $r_{p,t}=\alpha_p+\beta_p r_{M,t}+\varepsilon_{p,t}$ para obtener $\hat\beta_p$ (exposición al mercado) y $\hat\alpha_p$ (desvío ex post). Reportamos errores estándar OLS y HAC para inferencia robusta ante heterocedasticidad y dependencia temporal.
+\item Propósito: conectar la lógica económica del CAPM con evidencia empírica y mostrar cómo correcciones estándar afectan la inferencia sin alterar la interpretación del modelo.
+\end{itemize}
 
 \newpage
-### Bloque 0  
-En este video abordamos el problema central de la valuación de activos bajo riesgo, cómo vincular diferencias en rendimientos esperados con una medida cuantitativa de exposición al riesgo sistemático. El CAPM propone que, en equilibrio, el riesgo que debe ser compensado es el riesgo de mercado, resumido por la beta, así que el objetivo empírico no es solo estimar betas sino evaluar si esas betas organizan la sección cruzada de rendimientos en exceso. Para mantener la evidencia clara y reducir ruido idiosincrático trabajamos con los 10 portafolios de tamaño de Estados Unidos y con el factor de mercado en exceso. Definimos $r_{p,t}=R_{p,t}-R_{f,t}$ como el rendimiento en exceso del portafolio $p$ y $r_{M,t}=R_{M,t}-R_{f,t}$ como el rendimiento en exceso del mercado, que en los datos de Kenneth French corresponde a Mkt-RF. Primero estimamos por serie de tiempo el market model para cada portafolio y obtenemos beta y alpha como medidas de exposición y desviación respecto al mercado, recordando que este paso genera insumos pero no prueba el modelo de pricing. Luego pasamos a la sección cruzada y usamos rendimientos promedio $\bar r_p$ y betas estimadas para preguntar si mayor riesgo sistemático se asocia con mayor rendimiento esperado y si el intercepto es compatible con cero en excesos. Finalmente aplicamos Fama MacBeth y repetimos la regresión en sección cruzada mes a mes con betas fijas para estimar el precio del riesgo del mercado a través del tiempo y su promedio, lo que permite interpretar el CAPM como una relación cuantitativa entre beta y prima de riesgo y evaluar su estabilidad temporal.
 
-### Bloque 1. CAPM en serie de tiempo  
-**Definiciones clave**  
-- $r_{p,t}=R_{p,t}-R_{f,t}$  
-- $r_{M,t}=R_{M,t}-R_{f,t}$ y en Kenneth French es Mkt-RF  
+# Paquetes.
 
-**Datos (mensuales, EE. UU.)**  
-- $R$ $T\times N$ con $N=10$ con $r_{p,t}$ para los 10 size portfolios  
-- $r_M$ $T\times 1$ con $r_{M,t}$ Mkt-RF  
-- $r_f$ $T\times 1$ si construyes excesos desde retornos totales  
+```{r}
+library(tidyverse)
+library(lubridate)
+library(curl)
+library(stringr)
+library(broom)
+library(dplyr)
+library(tidyr)
+library(lmtest)
+library(sandwich)
+library(ggplot2)
+```
 
-**Regresión**  
-$$
-r_{p,t}=\alpha_p+\beta_p r_{M,t}+\varepsilon_{p,t}
-$$
+\newpage
 
-**Salida**  
-- $\hat\beta$ $10\times 1$  
-- $\hat\alpha$ $10\times 1$  
+# Datos 1/2.
 
-**Preguntas que responde**  
-- ¿Cuál es la exposición al mercado de cada portafolio $\hat\beta_p$?  
-- ¿Hay rendimiento anormal en la muestra respecto al mercado $\hat\alpha_p$?  
+```{r}
+# Descarga y arma capm_data (retornos en exceso) para 10 carteras
 
-**Nota-riesgo**  
-- Esto no prueba CAPM como modelo de pricing, aquí solo produces $\hat\beta$ como insumo para sección cruzada y un $\hat\alpha$ ex post.  
+read_size_deciles_vw <- function(url) {
+  tf <- tempfile(fileext = ".zip"); curl_download(url, tf, mode = "wb")
+  target <- str_subset(unzip(tf, list = TRUE)$Name, "Portfolios_Formed_on_ME")[1]
+  lines  <- read_lines(unz(tf, target))
+  tag    <- str_which(lines, "Value Weight Returns -- Monthly")[1]
+  data_lines <- gsub(",", "", lines[(tag + 1):length(lines)])
+  data_lines <- data_lines[str_detect(data_lines, "^\\s*\\d{6}")]
+  cols <- c("date_ym","leq0","Lo30","Med40","Hi30","Lo20","Qnt2","Qnt3","Qnt4","Hi20",
+            "Lo10","Dec2","Dec3","Dec4","Dec5","Dec6","Dec7","Dec8","Dec9","Hi10")
+  read.table(text = paste(data_lines, collapse = "\n"), header = FALSE,
+             col.names = cols, colClasses = c("character", rep("numeric", 19)),
+             sep = "", strip.white = TRUE) |>
+    mutate(date = as.Date(ymd(paste0(date_ym, "01")))) |>
+    select(date, Lo10, Dec2, Dec3, Dec4, Dec5, Dec6, Dec7, Dec8, Dec9, Hi10) |>
+    arrange(date) |>
+    distinct(date, .keep_all = TRUE)}
 
----
+read_factors <- function(url) {
+  tf <- tempfile(fileext = ".zip"); curl_download(url, tf, mode = "wb")
+  target <- str_subset(unzip(tf, list = TRUE)$Name, "F-F_Research_Data_Factors")[1]
+  lines <- read_lines(unz(tf, target))
+  first <- which(str_detect(lines, "^\\s*\\d{6}"))[1]
+  cn <- str_trim(str_split(lines[first - 1], ",")[[1]]); cn[1] <- "date_ym"
+  read_csv(paste(lines[(first - 1):length(lines)], collapse = "\n"),
+           col_names = cn,
+           col_types = cols(date_ym = col_character(),
+                            `Mkt-RF` = col_double(),
+                            RF = col_double(),
+                            .default = col_skip())) |>
+    filter(str_detect(date_ym, "^\\d{6}$")) |>
+    mutate(date = as.Date(ymd(paste0(date_ym, "01")))) |>
+    select(date, `Mkt-RF`, RF) |>
+    arrange(date) |>
+    distinct(date, .keep_all = TRUE)}
+```
 
-### Bloque 2. Sección cruzada en promedios  
-**Definiciones clave**  
-- $\bar r_p=\frac{1}{T}\sum_{t=1}^T r_{p,t}$  
+\newpage
 
-**Datos**  
-- $\bar r$ $10\times 1$  
-- $\hat\beta$ $10\times 1$  
+# Datos 2/2.
 
-**Regresión**  
-$$
-\bar r_p=\gamma_0+\gamma_1 \hat\beta_p+u_p
-$$
+```{r}
+url_size <- "https://mba.tuck.dartmouth.edu/pages/faculty/ken.french/ftp/Portfolios_Formed_on_ME_CSV.zip"
+url_factors <- "https://mba.tuck.dartmouth.edu/pages/faculty/ken.french/ftp/F-F_Research_Data_Factors_CSV.zip"
 
-**Preguntas que responde**  
-- En promedio, ¿mayor $\beta$ se asocia con mayor retorno en exceso esperado?  
-- ¿$\gamma_0$ es cercano a 0 en excesos, como sugiere CAPM?  
+size_deciles <- read_size_deciles_vw(url_size)
+factors      <- read_factors(url_factors)
 
-**Nota-riesgo**  
-- Es una foto resumen, con $N=10$ puntos la regresión puede ser frágil y promediar esconde variación temporal, por eso pasas a Fama MacBeth.  
+common_dates <- sort(intersect(size_deciles$date, factors$date))
+stopifnot(length(common_dates) >= 1000)
+last_1k_dates <- tail(common_dates, 1000)
+if (is.numeric(last_1k_dates)) last_1k_dates <- as.Date(last_1k_dates, origin = "1970-01-01")
 
-**Puente obligatorio**  
-- Bloque 1 produce $\hat\beta$ $10\times 1$, ahora $\hat\beta$ entra como regresor para preciar riesgo en sección cruzada.  
+size_last <- filter(size_deciles, date %in% last_1k_dates)
+fac_last  <- filter(factors,      date %in% last_1k_dates)
 
----
+capm_data <- inner_join(size_last, fac_last, by = "date") |>
+  pivot_longer(cols = Lo10:Hi10, names_to = "portfolio", values_to = "ret_pct") |>
+  mutate(ret = ret_pct, rf = RF, mkt_excess = `Mkt-RF`, excess_ret = ret - rf) |>
+  select(date, portfolio, excess_ret, mkt_excess, rf)
 
-### Bloque 3. Fama MacBeth  
-**Definiciones clave**  
-- $r_{p,t}=R_{p,t}-R_{f,t}$  
-- $\hat\beta_p$ se estima en Bloque 1 y se mantiene fijo  
+  nrow(capm_data)       # debería ser 10000 (1000 meses x 10 carteras)
+  range(capm_data$date) # rango de fechas usado
+  tail(capm_data)
+```
 
-**Datos (para cada mes $t$)**  
-- $r_t$ $10\times 1$ cambia con $t$  
-- $\hat\beta$ $10\times 1$ fijo  
 
-**Regresión**  
-$$
-r_{p,t}=\lambda_{0,t}+\lambda_{1,t}\hat\beta_p+\eta_{p,t}
-$$
+\newpage
 
-**Salida**  
-- $\hat\lambda_1$ $T\times 1$ con $\hat\lambda_{1,t}$ para $t=1,\dots,T$  
+# CAPM serie de tiempo (sin y con HAC).
 
-**Preguntas que responde**  
-- ¿Cuál es el precio del riesgo del mercado $\lambda_{1,t}$ mes a mes?  
-- ¿La prima promedio $\mathbb{E}[\lambda_1]$ es distinta de 0 y razonablemente estable?  
+\begin{itemize}
+\item Estimamos $r_{p,t}=\alpha_p+\beta_p r_{M,t}+\varepsilon_{p,t}$ para 10 carteras, donde $r_{p,t}$ y $r_{M,t}$ son retornos en exceso y $r_{M,t}$ corresponde a $Mkt\!-\!RF$.
+\item Objetivo: obtener $\hat\beta_p$ y $\hat\alpha_p$. Comparamos errores estándar OLS con HAC Heteroskedasticity and Autocorrelation Consistent (Newey--West) para evitar inferencia optimista cuando existe autocorrelación y heterocedasticidad.
+\end{itemize}
 
-**Nota-riesgo**  
-- No reestimas betas cada mes, lo que se reestima es $\lambda_{1,t}$ porque cambia $r_t$.  
+\newpage
 
+# Estimación MCO.
+
+```{r}
+order_port <- c("Lo10","Dec2","Dec3","Dec4","Dec5","Dec6","Dec7","Dec8","Dec9","Hi10","Mkt-RF")
+
+# OLS base
+capm_ts <- capm_data |>
+  filter(!is.na(excess_ret), !is.na(mkt_excess)) |>
+  group_by(portfolio) |>
+  do(tidy(lm(excess_ret ~ mkt_excess, data = .))) |>
+  ungroup() |>
+  mutate(term = recode(term, `(Intercept)` = "alpha", mkt_excess = "beta")) |>
+  select(portfolio, term, estimate, p.value) |>
+  pivot_wider(names_from = term, values_from = c(estimate, p.value)) |>
+  mutate(portfolio = factor(portfolio, levels = order_port)) |>
+  arrange(portfolio)
+
+# OLS con SE Newey–West (puntuales iguales)
+capm_ts_hac <- capm_data |>
+  filter(!is.na(excess_ret), !is.na(mkt_excess)) |>
+  group_by(portfolio) |>
+  group_modify(~ {
+    fit  <- lm(excess_ret ~ mkt_excess, data = .x)
+    nwvc <- NeweyWest(fit, lag = 3, prewhite = FALSE)  # ajusta lag (3–6 típico)
+    tidy(coeftest(fit, vcov. = nwvc))}) |>
+  ungroup() |>
+  mutate(term = recode(term, `(Intercept)` = "alpha", mkt_excess = "beta")) |>
+  select(portfolio, term, estimate, p.value) |>
+  pivot_wider(names_from = term, values_from = c(estimate, p.value)) |>
+  mutate(portfolio = factor(portfolio, levels = order_port)) |>
+  arrange(portfolio)
+
+capm_ts       # sin corrección
+capm_ts_hac   # con SE HAC
+```
+  
+  \newpage
+  
+# Visualización MCO.
+
+```{r}
+order_port <- c("Lo10","Dec2","Dec3","Dec4","Dec5","Dec6","Dec7","Dec8","Dec9","Hi10")
+
+line_df <- capm_ts |>
+  transmute(portfolio, alpha = estimate_alpha, beta  = estimate_beta) |>
+  mutate(portfolio = factor(portfolio, levels = order_port))
+
+capm_plot_df <- capm_data |>
+  mutate(portfolio = factor(portfolio, levels = order_port))
+
+ggplot(capm_plot_df, aes(x = mkt_excess, y = excess_ret)) +
+  geom_hline(yintercept = 0, linetype = "dashed", linewidth = 0.3) +
+  geom_vline(xintercept = 0, linetype = "dashed", linewidth = 0.3) +
+  geom_point(aes(color = mkt_excess > 0), alpha = 0.18, size = 0.7) +
+  geom_abline(data = line_df, aes(intercept = alpha, slope = beta),
+    show.legend = FALSE, linewidth = 0.6) +
+  facet_wrap(~ portfolio, ncol = 5) +
+  scale_color_manual(values = c("TRUE" = "#1f78b4", "FALSE" = "#e31a1c"),
+                     labels = c("FALSE" = "Mercado ≤ 0", "TRUE" = "Mercado > 0"),
+                     name = "") +
+scale_x_continuous(breaks = c(-15, 0, 15)) +
+  scale_y_continuous(breaks = scales::pretty_breaks(n = 4)) +
+  labs(title = expression(atop("CAPM en exceso: serie de tiempo por cartera",
+                            r[p,t] == alpha[p] + beta[p] %.% r[M,t])),
+    x = expression(r[M,t]~"(Mkt-RF)"),
+    y = expression(r[p,t])) +
+  theme_classic(base_size = 12) +  # quita cuadrícula
+  theme(axis.text.x = element_text(angle = 0, vjust = 0.5),
+    strip.background = element_blank())
+```
+
+
+\newpage
+# Resultados. CAPM serie de tiempo (sin y con HAC).
+
+\begin{itemize}
+\item Las $\hat\beta_p$ se ubican entre $\approx 0.94$ y $\approx 1.21$ y son altamente significativas. En general, las carteras de mayor tamaño tienden a mostrar menor exposición al mercado.
+\item Las $\hat\alpha_p$ son pequeñas en magnitud, del orden de décimas de punto porcentual mensual, y no son estadísticamente distintas de cero. HAC (Newey--West) cambia poco la inferencia, pero protege contra autocorrelación y heterocedasticidad.
+\end{itemize}
+
+
+\newpage
+
+# Visualización de Betas y rendimientos en exceso.
+
+```{r}
+order_port <- c("Lo10","Dec2","Dec3","Dec4","Dec5","Dec6","Dec7","Dec8","Dec9","Hi10","Mkt-RF")
+
+# Totales promedio por cartera
+beta_ret <- capm_ts |>
+  mutate(portfolio = factor(portfolio, levels = order_port)) |>
+  select(portfolio, beta = estimate_beta) |>
+  inner_join(capm_data |>
+               group_by(portfolio) |>
+               summarise(mean_total = mean(excess_ret, na.rm = TRUE),
+                         .groups = "drop"), by = "portfolio")
+
+# Punto de mercado: beta=1, mkt_excess
+mkt_point <- tibble(portfolio  = factor("Mkt-RF", levels = order_port),
+                    beta       = 1,
+                    mean_total = mean(capm_data$mkt_excess, na.rm = TRUE))
+
+beta_ret <- bind_rows(beta_ret, mkt_point)
+
+ggplot(beta_ret, aes(x = beta, y = mean_total, label = portfolio)) +
+  geom_point(size = 3, color = "#1f78b4") +
+  geom_text(vjust = -0.8, size = 3) +
+  labs(title = "CAPM en exceso: puntos por cartera",
+       x = "Beta (exposición al mercado)", 
+       y = "Rendimiento promedio en exceso") +
+  theme_minimal(base_size = 12) +
+  scale_x_continuous(limits = c(0.9, 1.25), expand = c(0, 0)) +
+  scale_y_continuous(limits = c(0.65, 1.05), expand = c(0, 0)) +
+  coord_equal()
+```
+
+\newpage
+# Regresión en sección cruzada (sin y con Shanken).
+
+\begin{itemize}
+  \item Antes estimamos $\hat\beta_p$ para cada cartera a partir de una regresión de serie de tiempo. Ahora usamos esas $\hat\beta_p$ como insumo para evaluar la predicción central del CAPM en la sección cruzada.
+  \item Específicamente, relacionamos el retorno promedio en exceso de cada cartera con su exposición al mercado:
+  $\bar r_p = \gamma_0 + \gamma_1 \hat\beta_p + u_p$, donde $\bar r_p$ es el promedio temporal de $r_{p,t}$.
+  \item Interpretación: $\gamma_1$ es el precio del riesgo de mercado, la compensación promedio por una unidad adicional de $\beta$, y $\gamma_0$ es el intercepto de la relación riesgo--retorno.
+  \item Preguntas: ¿existe una relación positiva riesgo--retorno $\gamma_1>0$? y ¿es el intercepto compatible con cero en retornos en exceso $\gamma_0=0$?
+  \item Reportamos OLS y un ajuste estilo Shanken para reflejar que $\hat\beta_p$ es un regresor estimado, lo que tiende a inflar los errores estándar respecto al caso con $\beta$ observada.
+\end{itemize}
+
+
+
+\newpage
+
+# Estimación regresión en sección cruzada.
+
+```{r}
+cross_df <- capm_ts |>
+  select(portfolio, beta = estimate_beta) |>
+  inner_join(capm_data |>
+               group_by(portfolio) |>
+               summarise(mean_excess = mean(excess_ret, na.rm = TRUE),
+                         .groups = "drop"), by = "portfolio")
+
+cs_reg  <- lm(mean_excess ~ beta, data = cross_df)
+cs_tidy <- tidy(cs_reg)  # OLS sin corrección
+
+# Shanken (corrige que beta es estimado)
+sigma_f2 <- var(capm_data$mkt_excess, na.rm = TRUE)
+mu_f     <- mean(capm_data$mkt_excess, na.rm = TRUE)
+shanken_fac <- 1 + (mu_f^2 / sigma_f2)
+
+vcov_shanken <- vcov(cs_reg) * shanken_fac
+cs_shanken <- coeftest(cs_reg, vcov. = vcov_shanken) |>
+tidy()  # estimate, std.error, statistic, p.value
+
+cs_tidy    # sin corrección
+cs_shanken # con SE Shanken
+```
+\newpage
+
+# Resultados. Sección cruzada de promedios (sin y con Shanken).
+
+\begin{itemize}
+\item El precio del riesgo $\gamma_1$ es positivo y estadísticamente relevante en la muestra ($\hat\gamma_1\approx 0.95\%$ mensual). El ajuste estilo Shanken incrementa levemente los errores estándar sin alterar el signo ni el mensaje económico.
+\item El intercepto $\gamma_0$ no difiere significativamente de cero, consistente con rendimientos en exceso correctamente centrados.
+\item Este resultado anticipa lo que veremos con Fama--MacBeth: en lugar de usar solo promedios, estimaremos el precio del riesgo mes a mes para evaluar su variación temporal y realizar inferencia con errores estándar adecuados.
+\end{itemize}
+
+\newpage
+
+# Visualización de Betas, rendimientos en exceso y linea de regresión.
+
+```{r}
+alpha_cs  <- coef(cs_reg)[["(Intercept)"]]
+slope_rm  <- coef(cs_reg)[["beta"]]
+
+ggplot(beta_ret, aes(x = beta, y = mean_total, label = portfolio)) +
+  geom_point(size = 3, color = "#1f78b4") +
+  geom_text(vjust = -0.8, size = 3) +
+  geom_abline(intercept = alpha_cs, slope = slope_rm,
+              linetype = "dashed", color = "firebrick") +
+  labs(title = expression(atop("CAPM en exceso: puntos por cartera y línea", E(r[p]) == alpha + beta %.% E(r[M]))),
+       x = "Beta (exposición al mercado)",
+       y = "Rendimiento promedio en exceso") +
+  theme_minimal(base_size = 12) +
+  scale_x_continuous(limits = c(0.9, 1.25), expand = c(0, 0)) +
+  scale_y_continuous(limits = c(0.65, 1.05), expand = c(0, 0)) +
+  coord_equal() 
+```
+
+\newpage
+
+# Fama–MacBeth (sin y con Newey–West).
+
+\begin{itemize}
+\item Fama--MacBeth: para cada mes estimamos $r_{p,t}=\lambda_{0,t}+\lambda_{1,t}\hat\beta_p+\eta_{p,t}$, usando $\hat\beta_p$ fijas la regresión de serie de tiempo.
+\item Interesa el precio del riesgo $\lambda_{1,t}$ y su promedio $\bar\lambda_1$. Para la inferencia sobre $\bar\lambda_1$, comparamos errores estándar básicos con HAC (Newey--West) sobre la serie temporal de $\hat\lambda_{1,t}$ (y análogamente para $\hat\lambda_{0,t}$).
+\item Valor agregado frente a la sección cruzada: en lugar de estimar un solo $\gamma_1$ usando medias, Fama--MacBeth estima $\lambda_{1,t}$ mes a mes. Esto permite estudiar la variación temporal del precio del riesgo y construir inferencia a partir de la dispersión temporal de $\hat\lambda_{1,t}$, con correcciones HAC cuando hay dependencia en el tiempo.
+\item Como el punto $Mkt\!-\!RF$ es solo una referencia visual y no entra en la regresión cruzada, la recta no está obligada a pasar exactamente por él.
+\end{itemize}
+
+\newpage
+
+# Estimación Fama Mac-Beth 1/2.
+
+```{r}
+# Betas fijos serie de tiempo
+betas <- capm_ts |>
+  select(portfolio, beta = estimate_beta)
+
+# Regresiones mensuales: r_{p,t} ~ beta_p
+fm_monthly <- capm_data |>
+  select(date, portfolio, ret = excess_ret) |>
+  left_join(betas, by = "portfolio") |>
+  group_by(date) |>
+  group_modify(~ tidy(lm(ret ~ beta, data = .x))) |>
+  ungroup() |>
+  mutate(term = recode(term, `(Intercept)` = "lambda0", beta = "lambda1"))
+
+# Series λ1_t y λ0_t
+lambda1_series <- fm_monthly |>
+  filter(term == "lambda1") |>
+  select(date, lambda1 = estimate, se = std.error, t = statistic, p = p.value)
+
+lambda0_series <- fm_monthly |>
+  filter(term == "lambda0") |>
+  select(date, lambda0 = estimate, se = std.error, t = statistic, p = p.value)
+
+# Resumen FM básico (sd/sqrt(T))
+lambda1_mean_basic <- lambda1_series |>
+  summarise(estimate  = mean(lambda1, na.rm = TRUE),
+            std.error = sd(lambda1, na.rm = TRUE) / sqrt(n()),
+            statistic = estimate / std.error,
+            p.value   = 2 * pt(-abs(statistic), df = n() - 1)) |>
+  mutate(method = "FM básico", factor = "lambda1", nw_lag = NA_integer_) |>
+  select(method, factor, estimate, std.error, statistic, p.value, nw_lag)
+
+lambda0_mean_basic <- lambda0_series |>
+  summarise(estimate  = mean(lambda0, na.rm = TRUE),
+            std.error = sd(lambda0, na.rm = TRUE) / sqrt(n()),
+            statistic = estimate / std.error,
+            p.value   = 2 * pt(-abs(statistic), df = n() - 1)) |>
+  mutate(method = "FM básico", factor = "lambda0", nw_lag = NA_integer_) |>
+  select(method, factor, estimate, std.error, statistic, p.value, nw_lag)
+```
+
+
+\newpage
+
+# Estimación Fama Mac-Beth 2/2.
+
+```{r}
+# Resumen FM con Newey–West sobre las series
+nw_L <- 3  # rezago HAC (3–6 típico en mensual)
+
+lambda1_mean_nw <- {
+  fit  <- lm(lambda1 ~ 1, data = lambda1_series)
+  vc   <- NeweyWest(fit, lag = nw_L, prewhite = FALSE)
+  coeftest(fit, vcov. = vc) |>
+    tidy() |>
+    transmute(method   = "FM + NW", factor   = "lambda1",
+              estimate = estimate, std.error = std.error,
+              statistic = statistic, p.value = p.value,
+              nw_lag = nw_L)}
+
+lambda0_mean_nw <- {
+  fit  <- lm(lambda0 ~ 1, data = lambda0_series)
+  vc   <- NeweyWest(fit, lag = nw_L, prewhite = FALSE)
+  coeftest(fit, vcov. = vc) |>
+    tidy() |>
+    transmute(method   = "FM + NW", factor   = "lambda0",
+              estimate = estimate, std.error = std.error,
+              statistic = statistic, p.value = p.value,
+              nw_lag = nw_L)}
+
+# Comparación lado a lado
+lambda_mean <- bind_rows(lambda1_mean_basic, lambda0_mean_basic,
+                         lambda1_mean_nw,    lambda0_mean_nw)
+
+lambda1_series   # serie mensual de λ1_t
+lambda0_series   # serie mensual de λ0_t
+lambda_mean      # tabla comparativa básica vs NW para λ0 y λ1
+```
+\newpage
+
+# Visualización de las estimaciones Fama Mac-Beth.
+
+```{r}
+lambda_year <- bind_rows(
+  lambda1_series |> transmute(date, value = lambda1, factor = "hat(lambda)[1]"),
+  lambda0_series |> transmute(date, value = lambda0, factor = "hat(lambda)[0]")
+) |>
+  mutate(year = year(date)) |>
+  group_by(factor, year) |>
+  summarise(value = mean(value, na.rm = TRUE), .groups = "drop")
+
+# Medias por panel (para la línea vertical)
+lambda_year_mean <- lambda_year |>
+  group_by(factor) |>
+  summarise(mu = mean(value, na.rm = TRUE), .groups = "drop")
+
+ggplot(lambda_year, aes(x = value)) +
+  geom_density(aes(fill = factor), alpha = 0.35, adjust = 1.1, linewidth = 0.8) +
+  geom_vline(data = lambda_year_mean, aes(xintercept = mu),
+             linetype = "solid", linewidth = 0.6) +
+  facet_wrap(~ factor, scales = "free_x", ncol = 1, labeller = label_parsed) +
+  scale_x_continuous(breaks = scales::breaks_width(2)) +
+  labs(title = "Fama–MacBeth: densidad de promedios anuales",
+       subtitle = "Línea sólida: media por panel",
+       x = "Promedio anual", y = "Densidad") +
+  theme_classic(base_size = 13) +
+  theme(legend.position = "none",
+        strip.text = element_text(size = 16),
+        strip.background = element_blank())
+```
+
+\newpage
+
+# Resultados. Fama–MacBeth (sin y con Newey–West).
+  
+\begin{itemize}
+\item El precio del riesgo de mercado es positivo en promedio: $\bar\lambda_1 \approx 0.95\%$ mensual, coherente con la sección cruzada. La evidencia es moderada, con $p \approx 0.05$ (SE básicos) y $p \approx 0.07$ (HAC Newey--West), reflejando la variación temporal de $\hat\lambda_{1,t}$.
+\item El intercepto promedio es $\bar\lambda_0 \approx -0.18\%$ y no es estadísticamente distinto de cero; la corrección Newey--West aumenta modestamente los errores estándar sin cambiar el mensaje central.
+\end{itemize}
 
 \newpage
 # Conclusión.
@@ -156,7 +503,8 @@ $$
 \Large 
 
 \begin{itemize}
-  \item Los rendimientos acumulados permiten comparar desempeño histórico más allá de un solo punto riesgo–retorno.
-  \item El block bootstrap muestra qué tan estables son las carteras ante cambios plausibles del periodo.
+\item Los datos respaldan la lógica central del CAPM: el rendimiento esperado en exceso aumenta con $\beta$ y el intercepto es compatible con cero.
+\item El precio del riesgo estimado es $\bar\lambda_1 \approx 0.95\%$ mensual. Como aproximación lineal, esto equivale a $\approx 11\%$ anualizado; la evidencia estadística es moderada, pero el signo y el orden de magnitud se mantienen bajo correcciones HAC.
+\item Las $\alpha_p$ no muestran desvíos sistemáticos. Una vez controlada la compensación por riesgo de mercado vía $\beta$, no queda un excedente sistemático sin explicar.
+\item El CAPM luce coherente pero no definitivo: en estas 10 carteras el ajuste es relativamente favorable, en parte porque trabajamos con carteras diversificadas y una muestra larga; aun así, modelos multifactor (tamaño, value, momentum) pueden capturar variación adicional y reducir alphas residuales.
 \end{itemize}
-
