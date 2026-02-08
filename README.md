@@ -1,4 +1,5 @@
 # YouTube: "Ah, ya entendí."
+[![YouTube](https://img.shields.io/badge/YouTube-FF0000?logo=youtube&logoColor=white&style=flat-square)](https://www.youtube.com/@ahyaentendi)
 
 https://www.youtube.com/@ahyaentendi
 
