@@ -1,10 +1,10 @@
-# Contenido de "Ah, ya entendí."
+# YouTube: "Ah, ya entendí."
 
 https://www.youtube.com/@ahyaentendi
 
 ## Finanzas.
 
-1. Rendimientos accionarios en R. `rend`
+1. [Rendimientos accionarios en R.](https://youtu.be/WVSP6z9EG44?si=QCmcGGaP-wFKw5_E) `rend.Rmd`, `rend.pdf`
 1. Rendimiento aritmético y geométrico. `arigeo`
 1. Señales de compra y venta con las Bandas de Bollinger. `NA`
 1. Trading con velas japonesas | Introducción. `NA`
@@ -21,7 +21,7 @@ https://www.youtube.com/@ahyaentendi
 1. CAPM como modelo de valuación | Estimación y evidencia empírica (próximamente). `capm_aca`
 1. CAPM aplicado | Beta, costo de capital y alpha (próximamente). `capm_prac`
 
-## Finanzas para no financieros.
+## Finanzas para no financieros. `FPNF`
 
 1. Dinero, tiempo e información. `FPNF-dti`
 1. Estados financieros y su análisis | Introducción. `FPNF-estados`
@@ -44,7 +44,7 @@ https://www.youtube.com/@ahyaentendi
 1. La paradoja del rendimiento máximo.
 
 
-## Visualizaciones, códigos en MATLAB.
+## Visualizaciones, códigos en MATLAB. `MATLAB`
 
 1. Clayton Copula: random numbers. `Clayton.m`
 1. Gumbel Copula: random numbers. `Gumbel.m`
@@ -58,3 +58,12 @@ https://www.youtube.com/@ahyaentendi
 1. US minimum variance portfolio composition: 5 industry portfolios. `weights5ind.m`
 1. US minimum variance portfolio composition: 10 industry portfolios. `weights10ind.m`
 
+# Substack, contenido gratuito: "Ah, ya entendí."
+
+https://ahyaentendi.substack.com/
+
+1. [Riesgo climático y la tragedia de los horizontes temporales.](https://ahyaentendi.substack.com/p/riesgo-climatico-y-la-tragedia-de?r=7eldc0)
+1. [Amor, stock y flujos.](https://ahyaentendi.substack.com/p/amor-stock-y-flujos?r=7eldc0)
+1. Dinero e ideas (próximamente).
+1. La tasa de interés como precio del tiempo (próximamente).
+1. Finanzas como infraestructura social (próximamente).

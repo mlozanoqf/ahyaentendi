@@ -1,0 +1,162 @@
+---
+title: "\\textbf{CAPM aplicado.}"
+subtitle: "Beta, costo de capital y alpha."
+author: "Dr. Martín Lozano \\texttt{https://mlozanoqf.github.io/}"
+date: "`r gsub('a\\. m\\.', 'a.m.', gsub('p\\. m\\.', 'p.m.', format(Sys.time(), '%d de %B de %Y, %I:%M %p')))`"
+output:
+  pdf_document:
+    latex_engine: xelatex
+    number_sections: true
+    highlight: tango
+header-includes:
+  - \usepackage{xcolor}
+  - \usepackage{fvextra}
+  - |
+      \DefineVerbatimEnvironment{Highlighting}{Verbatim}{
+        breaklines,
+        commandchars=\\\{\},
+        numbers=left,
+        numbersep=8pt,
+        fontsize=\small,
+        firstnumber=1,
+        xleftmargin=1.5em,
+        frame=none
+      }
+      % ← Estilo de los números de línea (más visibles)
+      \renewcommand{\theFancyVerbLine}{\textcolor{black}{\bfseries\small\arabic{FancyVerbLine}}}
+  - \usepackage{amssymb}
+  - \usepackage{amsmath}
+---
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+library(knitr)
+
+tabla <- matrix(
+  c("$\\times$", "$\\checkmark$", "$\\times$",
+    "$\\times$", "$\\checkmark$", "$\\times$",
+    "$\\times$", "$\\checkmark$", "$\\times$"),
+  nrow = 3, byrow = TRUE
+)
+colnames(tabla) <- c("Fundamental", "Intermedio", "Especializado")
+rownames(tabla) <- c("Finanzas", "Estadística", "R")
+
+kable(tabla, escape = FALSE, align = c("c","c","c"))
+
+```
+
+
+
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  class.source = "numberLines",   # activa numeración en todos los chunks con echo=TRUE
+  Sys.setlocale("LC_TIME", "es_ES.UTF-8")
+)
+```
+
+\newpage
+\Large 
+
+# Introducción.
+
+\begin{itemize}
+  \item Se descargan precios históricos de 10 acciones y se calculan retornos mensuales. Con esos retornos se estiman medias, volatilidades y razón de Sharpe por activo.
+  \item Se construye la frontera eficiente media–varianza y se comparan tres carteras. Finalmente, se evalúa la robustez de riesgo y rendimiento con un block bootstrap de 6 meses (500 réplicas).
+  \end{itemize}
+
+\newpage
+
+### Bloque 0  
+En este video el CAPM se presenta como una herramienta operativa para decisiones financieras en las que se requiere cuantificar exposición al riesgo de mercado, derivar un rendimiento requerido para el capital propio y evaluar el desempeño de un fondo con un marco consistente. Trabajamos con rendimientos en exceso definidos como $r_{i,t}=R_{i,t}-R_{f,t}$ para el activo o fondo y $r_{M,t}=R_{M,t}-R_{f,t}$ para el mercado, de modo que la beta se interprete como sensibilidad a variaciones del mercado netas de la tasa libre de riesgo. Con esa beta, el CAPM se traduce en un rendimiento requerido para el equity, útil en valuación por descuento de flujos, análisis de proyectos y comparaciones de costo de capital entre empresas con distintos perfiles de riesgo. El mismo esquema de estimación permite además evaluar el desempeño de un fondo mediante el alpha de Jensen, separando el componente atribuible a exposición al mercado del componente residual, lo que ayuda a juzgar si el rendimiento observado es consistente con el riesgo tomado. El énfasis, por tanto, no está en probar el modelo como teoría de equilibrio, sino en usar sus estimaciones como insumos transparentes para decisiones de valuación y evaluación de resultados bajo supuestos explícitos.
+
+### Bloque 1. Estimar beta de un activo o fondo  
+**Activo sugerido**  
+- AAPL o MSFT  
+
+**Definiciones clave**  
+- $r_{i,t}=R_{i,t}-R_{f,t}$  
+- $r_{M,t}=R_{M,t}-R_{f,t}$  
+
+**Datos**  
+- $r_i$ $T\times 1$  
+- $r_M$ $T\times 1$  
+- $r_f$ $T\times 1$  
+
+**Regresión**  
+$$
+r_{i,t}=\alpha_i+\beta_i r_{M,t}+\varepsilon_{i,t}
+$$
+
+**Preguntas que responde**  
+- ¿Cuál es la exposición al mercado $\hat\beta_i$?  
+- ¿Cómo interpreto la magnitud de $\hat\beta$ en escenarios de mercado?  
+
+**Nota-riesgo**  
+- La beta depende de ventana, frecuencia y puede cambiar en el tiempo.  
+
+---
+
+### Bloque 2. Costo de capital con CAPM  
+**Activo sugerido**  
+- KO, WMT o XOM  
+
+**Definiciones clave**  
+- Rendimiento requerido para el equity $k_e$  
+
+**Inputs**  
+- $\hat\beta_i$, $R_f$, $ERP$  
+
+**Ecuación**  
+$$
+k_e \approx R_f+\hat\beta_i\cdot ERP
+$$
+
+**Preguntas que responde**  
+- ¿Cuál es el rendimiento requerido para el equity dada la beta?  
+- ¿Qué sensibilidad tiene $k_e$ ante cambios en $\hat\beta$ y $ERP$?  
+
+**Nota-riesgo**  
+- El ERP es un supuesto y suele dominar el número, no sale de la regresión.  
+
+---
+
+### Bloque 3. Alpha de Jensen para un fondo  
+**Activo sugerido**  
+- ARKK  
+- Alternativa de control SPY o VOO  
+
+**Definiciones clave**  
+- $\alpha$ captura rendimiento en exceso no explicado por $r_{M,t}$ dado $\beta$  
+
+**Datos**  
+- $r_{\text{fondo}}$ $T\times 1$  
+- $r_M$ $T\times 1$  
+- $r_f$ $T\times 1$  
+
+**Regresión**  
+$$
+r_{\text{fondo},t}=\alpha+\beta r_{M,t}+\varepsilon_t
+$$
+
+**Preguntas que responde**  
+- ¿El fondo tuvo rendimiento extra ajustado por beta $\hat\alpha>0$?  
+- ¿El fondo es más mercado o realmente generó alpha?  
+
+**Nota-riesgo**  
+- $\hat\alpha$ es ex post y depende del benchmark, no es garantía futura.
+
+
+\newpage
+# Conclusión.
+
+\Large 
+
+\begin{itemize}
+  \item Los rendimientos acumulados permiten comparar desempeño histórico más allá de un solo punto riesgo–retorno.
+  \item El block bootstrap muestra qué tan estables son las carteras ante cambios plausibles del periodo.
+\end{itemize}
+
