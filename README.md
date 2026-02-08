@@ -5,7 +5,7 @@ https://www.youtube.com/@ahyaentendi
 ## Finanzas.
 
 1. [Rendimientos accionarios en R.](https://youtu.be/WVSP6z9EG44?si=QCmcGGaP-wFKw5_E) `rend.Rmd`, `rend.pdf`
-1. Rendimiento aritmético y geométrico. `arigeo`
+1. [Rendimiento aritmético y geométrico.](https://youtu.be/Gm-NVynPD38?si=fqM1TZtu-LKI2tFO) `arigeo.Rmd`, `arigeo.pdf`
 1. Señales de compra y venta con las Bandas de Bollinger. `NA`
 1. Trading con velas japonesas | Introducción. `NA`
 1. El robo-trader más simple. `robosim`
