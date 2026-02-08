@@ -61,6 +61,8 @@ https://www.youtube.com/@ahyaentendi
 
 # Substack, contenido gratuito: "Ah, ya entendí."
 
+[![Substack](https://img.shields.io/badge/Substack-FF6719?logo=substack&logoColor=white&style=flat-square)](https://ahyaentendi.substack.com)
+
 https://ahyaentendi.substack.com/
 
 1. [Riesgo climático y la tragedia de los horizontes temporales.](https://ahyaentendi.substack.com/p/riesgo-climatico-y-la-tragedia-de?r=7eldc0)
