@@ -5,7 +5,7 @@ https://www.youtube.com/@ahyaentendi
 
 ## Finanzas.
 
-1. [Rendimientos accionarios en R.](https://youtu.be/WVSP6z9EG44?si=QCmcGGaP-wFKw5_E) `rend.Rmd`, `rend.pdf`
+1. [Rendimientos accionarios en R.](https://youtu.be/WVSP6z9EG44?si=QCmcGGaP-wFKw5_E) `rend.R`, `rend.Rmd`, `rend.pdf`
 1. [Rendimiento aritmético y geométrico.](https://youtu.be/Gm-NVynPD38?si=fqM1TZtu-LKI2tFO) `arigeo.Rmd`, `arigeo.pdf`
 1. [Señales de compra y venta con las Bandas de Bollinger.](https://youtu.be/U0Kyzy_GO50?si=R-Fza0KYI0dUJ7SF) *Sin apoyos ni código.*
 1. [Trading con velas japonesas | Introducción.](https://youtu.be/gAtX54Dp13M?si=8ImuIIXOMWmfuPVg) *Sin apoyos ni código.*
