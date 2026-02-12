@@ -32,7 +32,7 @@ header-includes:
 library(knitr)
 
 tabla <- matrix(
-  c("$\\times$", "$\\checkmark$", "$\\times$",
+  c("$\\times$", "$\\times$", "$\\checkmark$",
     "$\\times$", "$\\checkmark$", "$\\times$",
     "$\\times$", "$\\checkmark$", "$\\times$"),
   nrow = 3, byrow = TRUE
@@ -64,10 +64,10 @@ knitr::opts_chunk$set(
 # Introducción.
 
 \begin{itemize}
-\item En este video el CAPM se presenta como una herramienta operativa para decisiones financieras. El propósito no es contrastar el CAPM como teoría de equilibrio, sino obtener insumos cuantitativos con interpretación clara para análisis aplicado.
-\item Trabajamos con rendimientos en exceso definidos como $r_{i,t}=R_{i,t}-R_{f,t}$ para el activo o fondo y $r_{M,t}=R_{M,t}-R_{f,t}$ para el mercado. Esta notación coincide con el video académico y mantiene consistencia con la teoría financiera.
-\item El benchmark de mercado se aproxima con el índice S\&P 500, usando su serie de niveles (\texttt{\^{}GSPC}) para construir rendimientos mensuales. En consecuencia, el rendimiento del mercado corresponde a un índice de precio; esta elección se adopta por disponibilidad y transparencia, y se mantiene fija a lo largo del video.
-\item El video se organiza en tres aplicaciones basadas en la misma regresión de serie de tiempo en exceso,
+\item El CAPM se presenta como una herramienta operativa para decisiones financieras. El propósito no es contrastar el CAPM como teoría de equilibrio, sino obtener insumos cuantitativos con interpretación clara para análisis aplicado.
+\item Usamos rendimientos en exceso definidos como $r_{i,t}=R_{i,t}-R_{f,t}$ para el activo o fondo y $r_{M,t}=R_{M,t}-R_{f,t}$ para el mercado. Esta notación coincide con el video académico y mantiene consistencia con la teoría financiera.
+\item El benchmark de mercado se aproxima con el índice S\&P 500, usando su serie de niveles (\texttt{\^{}GSPC}) para construir rendimientos mensuales. En consecuencia, el rendimiento del mercado corresponde a un índice de precio. Esta elección se adopta por disponibilidad y transparencia, y se mantiene fija a lo largo del video.
+\item Se presentan tres aplicaciones basadas en la misma regresión de serie de tiempo en exceso,
 $$
 r_{i,t}=\alpha_i+\beta_i r_{M,t}+\varepsilon_{i,t},
 $$
@@ -88,25 +88,26 @@ library(tidyquant)
 library(broom)
 library(lmtest)
 library(sandwich)
+library(readr)
+library(ggplot2)
 ```
 
+\newpage
 
-# Datos 1/2.
+# Descripción de datos.
 
 \begin{itemize}
-\item Descargamos niveles de precios desde Yahoo Finance con \texttt{tidyquant} para el índice S\&P 500 (\texttt{\^{}GSPC}) y para los instrumentos de las tres aplicaciones.
-\item Convertimos niveles a rendimientos mensuales usando precios ajustados y rendimientos aritméticos.
+\item Descargamos precios desde Yahoo Finance con \texttt{tidyquant} para el índice S\&P 500 (\texttt{\^{}GSPC}) y para los instrumentos de las tres aplicaciones.
+\item Convertimos precios a rendimientos mensuales usando precios ajustados y rendimientos aritméticos.
 \item Para la tasa libre de riesgo usamos una serie mensual de \texttt{FRED} (\texttt{TB3MS}), que es una tasa anualizada; la transformamos a rendimiento mensual efectivo para construir $R_{f,t}$ en la misma frecuencia.
 \item La ventana se fija para obtener 120 rendimientos mensuales hasta diciembre de 2025.
 \end{itemize}
 
-```{r}
-# Datos. Descarga y construcción (solo tidyquant, mensual, hasta 2025-12)
-library(tidyverse)
-library(lubridate)
-library(tidyquant)
-library(readr)
+\newpage
 
+# Datos 1/3.
+
+```{r data_download_prepare, cache=TRUE}
 # ----------------------------
 # Parámetros de muestra
 # ----------------------------
@@ -115,7 +116,7 @@ start_date <- end_date %m-% months(120) %m-% months(3)
 
 # Instrumentos
 ticker_mkt    <- "^GSPC"
-tickers_asset <- c("AAPL","KO","ARKK")
+tickers_asset <- c("AAPL","KO","FDGRX")
 
 # ----------------------------
 # Helper robusto: asegurar clase Date
@@ -272,7 +273,13 @@ mkt_rf <- inner_join(mkt_mret2, rf_m2, by = "date") |>
 common_dates <- intersect(unique(assets_mret2$date), unique(mkt_rf$date))
 common_dates <- fix_date(common_dates)
 common_dates <- sort(common_dates)
+```
 
+\newpage
+
+# Verificación de datos 1/2.
+
+```{r data_master_build, cache=TRUE}
 # Diagnóstico: aquí common_dates debe imprimirse como fechas, no números
 range(mkt_rf$date); nrow(mkt_rf)
 range(common_dates); length(common_dates)
@@ -291,7 +298,13 @@ capm_practical_data <- assets_mret2 |>
   ) |>
   select(date, ticker, ret, rf, mkt_ret, excess_ret, mkt_excess) |>
   arrange(ticker, date)
+```
 
+\newpage
+
+# Verificación de datos 2/2.
+
+```{r}
 # Checks finales: debe dar 120 meses por ticker
 capm_practical_data |>
   group_by(ticker) |>
@@ -299,19 +312,20 @@ capm_practical_data |>
             start    = min(date),
             end      = max(date),
             .groups = "drop")
+```
 
+
+```{r}
 tail(capm_practical_data)
-
-
 ```
 \newpage
 
-# Aplicación 1. Estimar beta de AAPL (exposición al mercado)
+# Aplicación 1. Contexto y objetivo: beta de \texttt{AAPL}.
 
 \begin{itemize}
 \item Objetivo: cuantificar la exposición de \texttt{AAPL} al riesgo de mercado usando el índice S\&P 500 como benchmark.
 \item Trabajamos con rendimientos en exceso: $r_{i,t}=R_{i,t}-R_{f,t}$ y $r_{M,t}=R_{M,t}-R_{f,t}$, donde $R_{M,t}$ proviene de \texttt{\^{}GSPC}.
-\item Estimamos la regresión de serie de tiempo en exceso
+\item Estimamos la regresión de serie de tiempo en exceso:
 $$
 r_{i,t}=\alpha_i+\beta_i r_{M,t}+\varepsilon_{i,t},
 $$
@@ -321,12 +335,10 @@ y reportamos $\hat\beta$ como medida de sensibilidad del activo a variaciones de
 
 \newpage
 
+# Aplicación 1. Estimación: beta de \texttt{AAPL}.
+
 ```{r}
 # Estimación de $\beta$ para AAPL (OLS y opcional HAC).
-library(broom)
-library(lmtest)
-library(sandwich)
-
 # Filtrar AAPL
 aapl_df <- capm_practical_data |>
   filter(ticker == "AAPL") |>
@@ -357,57 +369,719 @@ aapl_hac
 ```
 \newpage
 
-```{r}
-# Visualización (AAPL): dispersión $r_{i,t}$ vs $r_{M,t}$ y recta estimada.
-library(ggplot2)
+# Aplicación 1. Visualización: \texttt{AAPL}.
 
+```{r}
+# Aplicación 1. Visualización (AAPL): recta única y dos bandas (OLS vs HAC)
 coef_aapl <- coef(fit_aapl)
 alpha_hat <- unname(coef_aapl[1])
 beta_hat  <- unname(coef_aapl[2])
 
+x_grid <- tibble(mkt_excess = seq(min(aapl_df$mkt_excess, na.rm = TRUE),
+                                  max(aapl_df$mkt_excess, na.rm = TRUE),
+                                  length.out = 200))
+# Banda OLS (media condicional)
+pred_ols <- predict(fit_aapl, newdata = x_grid, interval = "confidence", level = 0.95)
+pred_ols <- as_tibble(pred_ols) |>
+  bind_cols(x_grid) |>
+  rename(fit = fit, lwr = lwr, upr = upr)
+
+# Banda HAC (media condicional)
+V_nw <- NeweyWest(fit_aapl, lag = nw_L, prewhite = FALSE)
+
+X_new   <- model.matrix(~ mkt_excess, data = x_grid)
+fit_hat <- as.numeric(X_new %*% coef(fit_aapl))
+se_nw   <- sqrt(diag(X_new %*% V_nw %*% t(X_new)))
+crit    <- qnorm(0.975)
+
+pred_nw <- tibble(mkt_excess = x_grid$mkt_excess, fit = fit_hat,
+                  lwr = fit_hat - crit * se_nw, upr = fit_hat + crit * se_nw )
+
 ggplot(aapl_df, aes(x = mkt_excess, y = excess_ret)) +
   geom_hline(yintercept = 0, linetype = "dashed", linewidth = 0.3) +
   geom_vline(xintercept = 0, linetype = "dashed", linewidth = 0.3) +
-  geom_point(alpha = 0.25, size = 1) +
+  # Banda OLS (más transparente)
+  geom_ribbon(data = pred_ols,
+              aes(x = mkt_excess, ymin = lwr, ymax = upr, fill = "OLS"),
+              alpha = 0.4, inherit.aes = FALSE) +
+  # Banda HAC (menos transparente para distinguirla)
+  geom_ribbon(data = pred_nw,
+              aes(x = mkt_excess, ymin = lwr, ymax = upr, fill = "HAC (Newey--West)"),
+              alpha = 0.40, inherit.aes = FALSE) +
+  # Recta única (sin leyenda)
   geom_abline(intercept = alpha_hat, slope = beta_hat, linewidth = 0.7) +
-  labs(
-    title = expression(atop("AAPL en exceso: estimación de beta",
-                            r[i,t] == alpha[i] + beta[i] %.% r[M,t])),
+  # Puntos rojos
+  geom_point(color = "red", alpha = 0.55, size = 1.5) +
+  labs(title = expression(atop("AAPL en exceso: estimación de"~hat(beta),
+                            r[i,t] == hat(alpha)[i] + hat(beta)[i] %.% r[M,t] + epsilon[i,t])),
     x = expression(r[M,t]~"(S&P 500 en exceso)"),
-    y = expression(r[i,t]~"(AAPL en exceso)")
-  ) +
+    y = expression(r[i,t]~"(AAPL en exceso)"), fill = "Bandas 95%") +
   theme_classic(base_size = 12)
-
 ```
+
+
 \newpage
 
-# Resultados. Estimación e interpretación operativa (AAPL)
+# Aplicación 1. Resultados: tres lecturas para interpretar el CAPM en exceso (\texttt{AAPL}).
+
+A partir de la estimación en exceso
+\[
+r_{i,t}=\alpha_i+\beta_i r_{M,t}+\varepsilon_{i,t},
+\]
+conviene distinguir tres lecturas que responden a preguntas distintas. La diferencia central es \emph{qué objeto se quiere describir}: (i) la contribución sistemática asociada al mercado, (ii) la media condicional estimada por el modelo, o (iii) el rango plausible de una realización futura.
+
+\newpage
+
+# Aplicación 1. Lectura A: exposición sistemática y descomposición puntual.
+
+\textbf{Cuándo se usa.} Como punto de partida, cuando el objetivo es construir intuición rápida y comparaciones: (i) cuantificar la exposición al mercado con $\widehat{\beta}$ y (ii) evaluar escenarios simples (por ejemplo, un mes de mercado “bueno” o “malo”) en términos de magnitudes puntuales.
 
 \begin{itemize}
-\item Estimación (mensual, 120 observaciones hasta 2025-12, benchmark S\&P 500):
+\item Interpretación de $\widehat{\beta}$: la sensibilidad estimada es mayor que uno. En la muestra, \texttt{AAPL} reacciona más que proporcionalmente a variaciones del S\&P 500 en exceso de la tasa libre de riesgo. En términos marginales, un cambio de $1\%$ en $r_{M,t}$ se asocia con un cambio de aproximadamente $1.20\%$ en $r_{i,t}$.
 
-$\widehat{\alpha}=1.0693 \quad (\text{EE HAC}=0.5234,\; t=2.043,\; p=0.043)$,
-
-$\widehat{\beta}=1.1957 \quad (\text{EE HAC}=0.1092,\; t=10.946,\; p<10^{-18})$.
-
-\item Interpretación de $\widehat{\beta}$: la sensibilidad estimada es mayor que uno. En la muestra, AAPL muestra una reacción promedio superior a la del mercado ante variaciones mensuales del S\&P 500 en exceso de la tasa libre de riesgo. En términos marginales, un cambio de $1\%$ en $r_{M,t}$ se asocia con un cambio de aproximadamente $1.20\%$ en $r_{i,t}$.
-\item Lectura en escenarios (en retornos en exceso). Para un escenario de mercado de $r_{M,t}=+5\%$, el componente explicado por exposición al mercado es aproximadamente
+\item Escenarios (solo exposición al mercado). Si el objetivo es aislar la parte atribuible \emph{únicamente} a exposición sistemática, el componente asociado al mercado es
 \[
-\widehat{\beta}\,r_{M,t}\approx 1.1957\times 5\% \approx 5.98\%.
+\widehat{\beta}\,r_M.
 \]
-Para $r_{M,t}=-5\%$, el componente explicado es aproximadamente $-5.98\%$. La contribución de $\widehat{\alpha}$, al ser un intercepto mensual en exceso, desplaza el nivel medio del retorno en exceso, pero su interpretación es más natural en la evaluación de desempeño (Aplicación 3) que como “predicción” puntual.
-\item Comentario sobre $\widehat{\alpha}$: el intercepto estimado es positivo y estadísticamente distinto de cero bajo el ajuste HAC. En este video, $\widehat{\alpha}$ se interpreta como un promedio residual ex post condicionado a la especificación y al benchmark; no se utiliza como garantía de rendimiento futuro ni como objetivo de optimización.
-\item Nota metodológica mínima: se reportan errores estándar HAC (Newey--West, rezago 3) para evitar inferencia optimista si existe autocorrelación y heterocedasticidad en rendimientos mensuales. El énfasis del video, sin embargo, es operativo: la magnitud de $\widehat{\beta}$ como insumo para decisiones y comparaciones.
+Para un escenario $r_M=+5\%$, $\widehat{\beta}\,r_M=1.1957\times 5\%\approx 5.98\%$. Para $r_M=-5\%$, el componente es $\approx -5.98\%$.
+
+\item Escenarios (media condicional puntual). Si el objetivo es aproximar la media condicional en exceso bajo la especificación estimada,
+\[
+\widehat r_{i,t}(r_M)=\widehat{\alpha}+\widehat{\beta}\,r_M,
+\]
+donde $r_M$ se interpreta como un escenario para el rendimiento del mercado en exceso. Para $r_M=+5\%$, $\widehat r_{i,t}\approx 1.0693+1.1957\times 5\%\approx 7.05\%$. Para $r_M=-5\%$, $\widehat r_{i,t}\approx 1.0693-5.98\%\approx -4.91\%$.
+En esta descomposición, $\widehat{\beta}\,r_M$ captura exposición al mercado y $\widehat{\alpha}$ representa un componente promedio residual en la muestra, condicionado al benchmark y al periodo.
 \end{itemize}
 
 \newpage
 
-### Bloque 0  
-En este video el CAPM se presenta como una herramienta operativa para decisiones financieras en las que se requiere cuantificar exposición al riesgo de mercado, derivar un rendimiento requerido para el capital propio y evaluar el desempeño de un fondo con un marco consistente. Trabajamos con rendimientos en exceso definidos como $r_{i,t}=R_{i,t}-R_{f,t}$ para el activo o fondo y $r_{M,t}=R_{M,t}-R_{f,t}$ para el mercado, de modo que la beta se interprete como sensibilidad a variaciones del mercado netas de la tasa libre de riesgo. Con esa beta, el CAPM se traduce en un rendimiento requerido para el equity, útil en valuación por descuento de flujos, análisis de proyectos y comparaciones de costo de capital entre empresas con distintos perfiles de riesgo. El mismo esquema de estimación permite además evaluar el desempeño de un fondo mediante el alpha de Jensen, separando el componente atribuible a exposición al mercado del componente residual, lo que ayuda a juzgar si el rendimiento observado es consistente con el riesgo tomado. El énfasis, por tanto, no está en probar el modelo como teoría de equilibrio, sino en usar sus estimaciones como insumos transparentes para decisiones de valuación y evaluación de resultados bajo supuestos explícitos.
+# Aplicación 1. Lectura B: media condicional con incertidumbre (IC 95\% HAC).
 
+\textbf{Cuándo se usa.} Cuando la pregunta no es solo “¿cuál es el valor puntual?”, sino “\emph{¿qué tan precisa es la media condicional que el modelo asigna?}”. Esta lectura es útil para comunicar incertidumbre sobre $(\widehat{\alpha},\widehat{\beta})$ sin confundirla con la variación idiosincrática mensual.
 
+```{r}
+# IC 95% HAC para la media condicional E[r_i | r_M = rM]
+# Usa tus objetos: fit_aapl, nw_L
 
+V_nw  <- NeweyWest(fit_aapl, lag = nw_L, prewhite = FALSE)
+bhat  <- coef(fit_aapl)             # (alpha, beta)
+crit  <- qnorm(0.975)               # 1.96 aprox.
 
+ci_mean_hac <- function(rM, bhat, V, crit = qnorm(0.975)) {
+  x   <- matrix(c(1, rM), ncol = 1)                 # (1, rM)'
+  fit <- as.numeric(t(x) %*% bhat)                  # alpha + beta*rM
+  se  <- sqrt(as.numeric(t(x) %*% V %*% x))         # HAC se for mean
+  tibble(rM = rM, fit = fit, lwr = fit - crit*se, upr = fit + crit*se, se = se)
+}
 
+scenarios <- c(-5, 5)  # en % mensual
+ci_mean_df <- bind_rows(
+  ci_mean_hac(scenarios[1], bhat, V_nw, crit),
+  ci_mean_hac(scenarios[2], bhat, V_nw, crit)
+)
 
+ci_mean_df
+```
 
+\newpage
+
+# Aplicación 1. Lectura B: interpretación.
+
+\begin{itemize}
+\item Los intervalos anteriores son rangos al 95\% para la \emph{media condicional} $E(r_{i,t}\mid r_{M,t}=r_M)$ bajo la especificación estimada. Estos rangos incorporan incertidumbre sobre $(\widehat{\alpha},\widehat{\beta})$ mediante una matriz varianza--covarianza HAC (Newey--West).
+
+\item Interpretación: para un escenario $r_M$, el número central es
+\[
+\widehat r_{i,t}(r_M)=\widehat{\alpha}+\widehat{\beta}\,r_M,
+\]
+y el intervalo $[\text{lwr},\text{upr}]$ es un rango de incertidumbre para ese \emph{promedio condicional}, no para una observación individual.
+
+\item Resultados en escenarios (HAC, 95\%). Para $r_M=-5\%$, el modelo implica $\widehat r_{i,t}\approx -4.91\%$ y un intervalo al 95\% de $[-6.18\%,-3.63\%]$ (EE HAC $\approx 0.651$). Para $r_M=+5\%$, $\widehat r_{i,t}\approx 7.05\%$ y el intervalo al 95\% es $[5.38\%,8.71\%]$ (EE HAC $\approx 0.849$).
+
+\item Lectura práctica: estos rangos responden a \emph{“si el mercado en exceso fuera $r_M$, ¿qué tan imprecisa es la media que el modelo asigna a \texttt{AAPL}?”} dada la estimación de $\alpha$ y $\beta$ y la corrección HAC.
+\end{itemize}
+
+\newpage
+
+# Aplicación 1. Lectura C: intervalo de predicción (PI 95\%).
+
+\textbf{Cuándo se usa.} Cuando la pregunta es \emph{prospectiva} y se refiere a una \emph{realización mensual} posible, no a un promedio. Esta lectura es útil para planificación y gestión de riesgo porque incorpora la variación idiosincrática $\varepsilon_{i,t}$, que suele dominar la dispersión mensual.
+
+```{r}
+# PI 95% para una observación futura r_i | r_M = rM
+# Aproximación: agrega la varianza residual a la incertidumbre del estimador
+
+# Reutilizamos V_nw, bhat, crit del bloque anterior (si corres en secuencia).
+# Si corres este chunk aislado, descomenta las tres líneas siguientes:
+# V_nw <- NeweyWest(fit_aapl, lag = nw_L, prewhite = FALSE)
+# bhat <- coef(fit_aapl)
+# crit <- qnorm(0.975)
+
+# Varianza residual (en %^2 mensual, consistente con excess_ret)
+# Estimada por OLS como aproximación práctica
+sigma2_hat <- sum(resid(fit_aapl)^2, na.rm = TRUE) / df.residual(fit_aapl)
+
+pi_pred <- function(rM, bhat, V, sigma2, crit = qnorm(0.975)) {
+  x   <- matrix(c(1, rM), ncol = 1)
+  fit <- as.numeric(t(x) %*% bhat)
+  se_mean <- sqrt(as.numeric(t(x) %*% V %*% x))
+  se_pred <- sqrt(se_mean^2 + sigma2)
+  tibble(
+    rM = rM,
+    fit = fit,
+    pred_lwr = fit - crit*se_pred,
+    pred_upr = fit + crit*se_pred,
+    se_mean = se_mean,
+    se_pred = se_pred
+  )
+}
+
+scenarios <- c(-5, 5)
+pi_df <- bind_rows(
+  pi_pred(scenarios[1], bhat, V_nw, sigma2_hat, crit),
+  pi_pred(scenarios[2], bhat, V_nw, sigma2_hat, crit)
+)
+
+pi_df
+```
+
+\newpage
+
+# Aplicación 1. Lectura C: interpretación.
+
+\begin{itemize}
+\item Estos intervalos son de \emph{predicción} al 95\% para una observación futura $r_{i,t}$ condicionada en $r_{M,t}=r_M$. A diferencia del caso anterior, aquí se incorpora la dispersión no explicada por el mercado, $\varepsilon_{i,t}$, a través de la varianza residual $\widehat{\sigma}^2$ (estimada por OLS como aproximación práctica en esta aplicación).
+
+\item Por construcción, el intervalo de predicción es sustancialmente más amplio que el intervalo para la media condicional: además de la incertidumbre sobre $(\widehat{\alpha},\widehat{\beta})$, incorpora variación idiosincrática mensual de \texttt{AAPL} que el mercado no captura. En los escenarios considerados, el error estándar de la media condicional es relativamente pequeño (por ejemplo, $\widehat{se}_{mean}\approx 0.65$ para $r_M=-5\%$ y $\approx 0.85$ para $r_M=+5\%$), mientras que el error estándar de predicción es cercano a $6.1$, reflejando que la componente residual domina la dispersión mensual.
+
+\item Resultados en escenarios (predicción, 95\%). Para $r_M=-5\%$, el valor central del modelo es $\widehat r_{i,t}\approx -4.91\%$ y el intervalo de predicción al 95\% es $[-16.82\%,\,7.00\%]$. Para $r_M=+5\%$, $\widehat r_{i,t}\approx 7.05\%$ y el intervalo de predicción es $[-4.91\%,\,19.01\%]$.
+
+\item Lectura práctica: estos rangos responden a \emph{“si el mercado en exceso fuera $r_M$, ¿qué rango de retornos en exceso mensuales podría observar en \texttt{AAPL}?”} dentro del marco lineal estimado. La amplitud del intervalo subraya que, a frecuencia mensual, una fracción importante de la variación en retornos proviene de componentes idiosincráticos, aun cuando la exposición al mercado (capturada por $\widehat{\beta}$) sea estimada con precisión.
+\end{itemize}
+
+\newpage
+
+# Aplicación 1. Figura resumen: recta y bandas al 95\% (\texttt{AAPL}).
+
+```{r}
+# Requiere objetos ya creados en tu flujo:
+# aapl_df, fit_aapl, nw_L
+# (Opcional, si ya corriste los bloques previos: V_nw, bhat, crit, sigma2_hat)
+
+# ----------------------------
+# Preparación: grid de escenarios r_M
+# ----------------------------
+x_grid <- tibble(
+  rM = seq(min(aapl_df$mkt_excess, na.rm = TRUE),
+           max(aapl_df$mkt_excess, na.rm = TRUE),
+           length.out = 250)
+)
+
+# ----------------------------
+# Matriz var-cov HAC y coeficientes
+# ----------------------------
+V_nw <- NeweyWest(fit_aapl, lag = nw_L, prewhite = FALSE)
+bhat <- coef(fit_aapl)          # (alpha, beta)
+crit <- qnorm(0.975)
+
+# ----------------------------
+# Media condicional y su IC 95% (HAC)
+# ----------------------------
+X_new   <- model.matrix(~ rM, data = x_grid)        # columnas: (Intercept), rM
+fit_hat <- as.numeric(X_new %*% bhat)
+
+se_mean <- sqrt(diag(X_new %*% V_nw %*% t(X_new)))
+
+band_mean <- x_grid |>
+  mutate(
+    fit = fit_hat,
+    lwr = fit_hat - crit * se_mean,
+    upr = fit_hat + crit * se_mean,
+    band = "IC 95% media condicional (HAC)"
+  )
+
+# ----------------------------
+# Predicción: agrega varianza residual (aprox. práctica)
+# ----------------------------
+sigma2_hat <- sum(resid(fit_aapl)^2, na.rm = TRUE) / df.residual(fit_aapl)
+se_pred <- sqrt(se_mean^2 + sigma2_hat)
+
+band_pred <- x_grid |>
+  mutate(
+    fit = fit_hat,
+    lwr = fit_hat - crit * se_pred,
+    upr = fit_hat + crit * se_pred,
+    band = "PI 95% predicción (observación futura)"
+  )
+
+# ----------------------------
+# Gráfico: puntos + recta única + dos bandas
+# Nota: la recta es la misma en ambos casos; solo cambiamos las bandas.
+# ----------------------------
+ggplot(aapl_df, aes(x = mkt_excess, y = excess_ret)) +
+  geom_hline(yintercept = 0, linetype = "dashed", linewidth = 0.3) +
+  geom_vline(xintercept = 0, linetype = "dashed", linewidth = 0.3) +
+  # Marcas de escenarios (opcional): r_M = ±5
+  geom_vline(xintercept = c(-5, 5), linetype = "dotted", linewidth = 0.4) +
+  # Banda de predicción (más amplia)
+  geom_ribbon(
+    data = band_pred,
+    aes(x = rM, ymin = lwr, ymax = upr, fill = band),
+    alpha = 0.25, inherit.aes = FALSE
+  ) +
+  # Banda de media condicional (más estrecha)
+  geom_ribbon(
+    data = band_mean,
+    aes(x = rM, ymin = lwr, ymax = upr, fill = band),
+    alpha = 0.40, inherit.aes = FALSE
+  ) +
+  # Recta estimada (sin leyenda)
+  geom_line(
+    data = band_mean,
+    aes(x = rM, y = fit),
+    linewidth = 0.8, inherit.aes = FALSE
+  ) +
+  # Puntos (rojo)
+  geom_point(color = "red", alpha = 0.55, size = 1.5) +
+  labs(
+    title = expression(atop("AAPL en exceso: recta estimada y bandas al 95%",
+                            r[i,t] == hat(alpha)[i] + hat(beta)[i] %.% r[M,t] + epsilon[i,t])),
+    x = expression(r[M,t]~"(S&P 500 en exceso)"),
+    y = expression(r[i,t]~"(AAPL en exceso)"),
+    fill = "Bandas"
+  ) +
+  theme_classic(base_size = 12) +
+  theme(legend.position = "bottom")
+```
+
+\begin{itemize}
+\item La recta representa la media condicional estimada $\widehat r_{i,t}(r_M)=\widehat{\alpha}+\widehat{\beta}\,r_M$.
+\item La banda de \emph{media condicional (HAC)} refleja incertidumbre sobre $(\widehat{\alpha},\widehat{\beta})$; típicamente es relativamente estrecha.
+\item La banda de \emph{predicción} agrega variación idiosincrática $\varepsilon_{i,t}$ (vía $\widehat{\sigma}^2$), por lo que es sustancialmente más amplia.
+\end{itemize}
+
+\newpage
+
+# Aplicación 2. Contexto y criterio de uso ($k_e$ vs WACC).
+
+En esta aplicación distinguimos dos tasas que se usan según \emph{a quién} pertenece el flujo que se está valuando. El costo de equity, $k_e$, es el rendimiento requerido por los accionistas y es la tasa adecuada para descontar flujos \emph{al capital propio}. En términos prácticos, esto incluye dividendos, recompras y el \emph{free cash flow to equity} (FCFE), entendido como el efectivo que queda \emph{después} de cubrir gastos operativos, inversión y pagos a la deuda (intereses y amortizaciones), y que por lo tanto puede distribuirse a los accionistas sin comprometer la operación.
+
+En cambio, el WACC se usa para descontar flujos \emph{a la firma} o \emph{a los activos}, antes de decidir cómo se reparte el valor entre acreedores y accionistas. Ese flujo es el \emph{free cash flow to firm} (FCFF), que es el efectivo generado por las operaciones \emph{antes} de pagos netos a la deuda y, por construcción, es un flujo disponible para \emph{todos} los proveedores de capital.
+
+Esta distinción también ayuda a entender la relación entre tasas. En el caso sin deuda ($D=0$), el WACC coincide con el costo de equity, $WACC=k_e$, porque toda la financiación es capital propio. En situaciones típicas con deuda a un costo menor que el equity y con escudo fiscal, se espera $WACC<k_e$, ya que el WACC promedia una tasa de deuda usualmente más baja (después de impuestos) con la tasa de equity. Por ello, $k_e$ no “compite” con el WACC: se usa con flujos distintos y, además, $k_e$ es un insumo necesario para construir el propio WACC.
+
+\newpage
+
+# Aplicación 2. Definición operativa y pasos (CAPM para $k_e$).
+
+\begin{itemize}
+\item Objetivo: usar el CAPM para obtener un rendimiento requerido para el equity, $k_e$, a partir de (i) una estimación de exposición al mercado $\widehat{\beta}$ y (ii) un supuesto explícito sobre la prima de riesgo del mercado.
+
+\item Paso 1 (estimación de $\beta$ en exceso): mantenemos la notación del bloque anterior. Definimos rendimientos en exceso
+\[
+r_{i,t}=R_{i,t}-R_{f,t},\qquad r_{M,t}=R_{M,t}-R_{f,t},
+\]
+y estimamos para \texttt{KO}
+\[
+r_{i,t}=\alpha_i+\beta_i r_{M,t}+\varepsilon_{i,t}.
+\]
+El insumo empírico de esta aplicación es $\widehat{\beta}_{KO}$.
+
+\item Paso 2 (costo de capital en niveles): el costo de equity se reporta como un rendimiento \emph{total}. Bajo el CAPM,
+\[
+k_e \approx R_f + \widehat{\beta}_{KO}\cdot ERP,
+\]
+donde $ERP$ es la prima de riesgo del mercado definida como el exceso esperado del mercado,
+\[
+ERP \equiv E(r_M)=E(R_M)-R_f.
+\]
+En la regresión aparece $r_{M,t}$ como exceso \emph{realizado} mes a mes; en costo de capital aparece $ERP$ como exceso \emph{esperado}, es decir, un supuesto de largo plazo.
+
+\item Punto clave: $\widehat{\beta}_{KO}$ se estima con datos. En cambio, $ERP=E(r_M)$ es un \emph{supuesto} (entrada externa) y suele dominar el nivel de $k_e$. Por ello conviene reportar un valor base y una sensibilidad de $k_e$ ante distintos supuestos de $ERP$.
+
+\item Alcance: aquí solo construimos $k_e$ (costo de equity). No construimos WACC ni incorporamos ajustes por apalancamiento, primas por país o por tamaño; esas extensiones requieren supuestos adicionales y se dejan fuera para mantener transparencia.
+\end{itemize}
+
+\newpage
+
+# Aplicación 2. Estimación OLS de $\widehat{\beta}$ para \texttt{KO}.
+
+\begin{itemize}
+\item Objetivo: estimar $\widehat{\beta}_{KO}$ como insumo para construir el costo de equity $k_e$ bajo CAPM.
+\item Mantenemos exactamente la misma especificación en exceso que en la Aplicación 1:
+\[
+r_{i,t}=\alpha_i+\beta_i r_{M,t}+\varepsilon_{i,t},
+\]
+donde $r_{i,t}$ corresponde a \texttt{KO} y $r_{M,t}$ al S\&P 500 (\texttt{\^{}GSPC}), ambos en exceso de $R_{f,t}$.
+\item En esta aplicación reportamos OLS únicamente; la corrección HAC se omitirá aquí porque ya fue discutida y visualizada en el bloque anterior.
+\end{itemize}
+
+```{r}
+# Filtrar KO
+ko_df <- capm_practical_data |>
+  filter(ticker == "KO") |>
+  select(date, excess_ret, mkt_excess) |>
+  drop_na()
+
+# Regresión CAPM en exceso (OLS)
+fit_ko <- lm(excess_ret ~ mkt_excess, data = ko_df)
+
+# Tabla OLS (alpha y beta)
+ko_ols <- tidy(fit_ko) |>
+  mutate(term = recode(term, `(Intercept)` = "alpha", mkt_excess = "beta")) |>
+  select(term, estimate, std.error, statistic, p.value)
+
+ko_ols
+```
+
+\newpage
+
+# Aplicación 2. Visualización (\texttt{KO}): dispersión $r_{i,t}$ vs $r_{M,t}$ y recta OLS.
+
+```{r}
+coef_ko <- coef(fit_ko)
+alpha_hat_ko <- unname(coef_ko[1])
+beta_hat_ko  <- unname(coef_ko[2])
+
+ggplot(ko_df, aes(x = mkt_excess, y = excess_ret)) +
+  geom_hline(yintercept = 0, linetype = "dashed", linewidth = 0.3) +
+  geom_vline(xintercept = 0, linetype = "dashed", linewidth = 0.3) +
+  geom_point(alpha = 0.55, size = 1.5, col = "blue") +
+  geom_abline(intercept = alpha_hat_ko, slope = beta_hat_ko, linewidth = 0.8) +
+  labs(
+    title = expression(atop("KO en exceso: estimación OLS de"~hat(beta),
+                            r[i,t] == hat(alpha)[i] + hat(beta)[i] %.% r[M,t] + epsilon[i,t])),
+    x = expression(r[M,t]~"(S&P 500 en exceso)"),
+    y = expression(r[i,t]~"(KO en exceso)")
+  ) +
+  theme_classic(base_size = 12)
+```
+
+\newpage
+
+# Aplicación 2. Resultados (\texttt{KO}): insumo para costo de capital.
+
+\begin{itemize}
+\item Estimación (OLS):
+
+$\widehat{\alpha}_{KO}=0.1437,\quad SE=0.3838,\; t=0.375,\; p=0.709$,
+
+$\widehat{\beta}_{KO}=0.4882,\quad SE=0.0865,\; t=5.644,\; p\approx 1.16\times 10^{-7}$.
+
+\item Lectura operativa: $\widehat{\beta}_{KO}\approx 0.49$ implica que, en esta ventana y con el S\&P 500 como benchmark, \texttt{KO} exhibe una exposición al riesgo de mercado inferior a la unidad. Este es el insumo central para convertir prima de mercado esperada en un rendimiento requerido para el equity.
+
+\item Nota sobre $\widehat{\alpha}_{KO}$: el intercepto no es estadísticamente distinto de cero; en esta aplicación no se usa para construir $k_e$. El costo de equity bajo CAPM se apoya en $R_f$ y en $ERP=E(r_M)$, escalados por $\widehat{\beta}_{KO}$.
+
+\item Transición: en el siguiente bloque calculamos $k_e \approx R_f+\widehat{\beta}_{KO}\cdot ERP$, reportando un caso base y sensibilidad ante distintos supuestos de $ERP$.
+\end{itemize}
+
+\newpage
+
+# Aplicación 2. Costo de equity $k_e$ con CAPM: caso base y sensibilidad a $ERP=E(r_M)$.
+
+\begin{itemize}
+\item Objetivo: construir $k_e$ a partir de $\widehat{\beta}_{KO}$ y supuestos explícitos para $R_f$ y $ERP=E(r_M)$.
+\item Coherencia de frecuencia: $\widehat{\beta}_{KO}$ se estimó con datos mensuales; para reportar un costo de capital anual, anualizamos $R_f$ mensual y usamos un $ERP$ anual (supuesto de largo plazo).
+\item Presentamos (i) un caso base con un $ERP$ anual elegido y (ii) una tabla de sensibilidad de $k_e$ ante varios valores plausibles de $ERP$.
+\end{itemize}
+
+```{r}
+# --- Insumos ---
+beta_ko_hat <- ko_ols |> filter(term == "beta") |> pull(estimate) |> as.numeric()
+
+# RF anual: a partir del promedio mensual de rf en tu ventana (capm_practical_data)
+# rf está en % mensual efectivo en tus datos
+rf_mean_m <- capm_practical_data |>
+  distinct(date, rf) |>
+  summarise(rf_m = mean(rf, na.rm = TRUE)) |>
+  pull(rf_m) |> as.numeric()
+
+# Anualización compuesta desde % mensual -> % anual
+rf_ann <- 100 * ((1 + rf_mean_m/100)^12 - 1)
+
+# --- Supuestos para ERP anual = E(r_M) ---
+# Puedes ajustar esta parrilla; por defecto muestro 4% a 8%.
+erp_grid <- c(4, 5, 6, 7, 8)  # % anual
+
+# --- Costo de equity (anual, %) ---
+ke_table <- tibble(
+  beta_hat = beta_ko_hat,
+  rf_ann   = rf_ann,
+  ERP_ann  = erp_grid
+) |>
+  mutate(ke_ann = rf_ann + beta_hat * ERP_ann)
+
+ke_table
+```
+
+\newpage
+
+# Aplicación 2. Interpretación: qué determina $k_e$ y cómo leer la sensibilidad.
+
+\begin{itemize}
+\item Regla operativa (anual): con $ERP=E(r_M)$ en porcentaje anual,
+\[
+k_e \approx R_f + \widehat{\beta}_{KO}\cdot ERP.
+\]
+Aquí $R_f$ se anualiza a partir del promedio mensual observado en la ventana. En tu muestra, el promedio anualizado es $R_f \approx 2.1622\%$.
+
+\item Resultados (caso base y sensibilidad): con $\widehat{\beta}_{KO}=0.4882$, el costo de equity queda:
+\[
+k_e \approx 2.1622\% + 0.4882\times ERP.
+\]
+En particular, si $ERP=4\%$, $k_e\approx 4.115\%$; si $ERP=5\%$, $k_e\approx 4.603\%$; si $ERP=6\%$, $k_e\approx 5.091\%$; si $ERP=7\%$, $k_e\approx 5.580\%$; y si $ERP=8\%$, $k_e\approx 6.068\%$.
+
+\item Lectura de sensibilidad: un cambio de 1 punto porcentual en el $ERP$ anual cambia $k_e$ en aproximadamente $\widehat{\beta}_{KO}\approx 0.488$ puntos porcentuales. Esta elasticidad es el vínculo operativo entre exposición al mercado y rendimiento requerido del equity.
+
+\item Mensaje central: $\widehat{\beta}_{KO}$ determina \emph{cuánto} del supuesto sobre $ERP$ se traslada al costo de capital; el nivel de $k_e$ depende de manera importante del valor adoptado para $ERP$. Por ello, en aplicaciones prácticas es preferible reportar un rango de $ERP$ plausible en lugar de un único número.
+\end{itemize}
+
+Cierre (uso práctico, con supuestos explícitos): el propósito de estimar $k_e$ no es “adivinar” el rendimiento de \texttt{KO}, sino fijar un \emph{rendimiento requerido} para decisiones en las que el flujo relevante es del equity y el riesgo sistemático puede aproximarse por $\widehat{\beta}_{KO}$ frente al S\&P 500. Con $\widehat{\beta}_{KO}=0.4882$ y $R_f\approx 2.1622\%$ anual, el CAPM asigna un costo de equity entre $4.115\%$ y $6.068\%$ cuando se asume $ERP=E(r_M)$ entre $4\%$ y $8\%$. Este rango se usa como referencia operativa en tres situaciones típicas: (i) \emph{valuación por flujos al accionista} (FCFE/dividendos), donde se descuenta con $k_e$ y la lectura es que el valor es sensible al supuesto de $ERP$; (ii) \emph{evaluación de un proyecto desde el equity}, donde el criterio es comparar el rendimiento esperado del flujo al accionista con $k_e$ y exigir un margen de seguridad si el proyecto tiene incertidumbre adicional no capturada por el mercado; y (iii) \emph{insumo para WACC}, donde $k_e$ entra como componente del capital propio y la comparación relevante se hace a nivel de WACC solo si el flujo es FCFF. En todos los casos, la condición crítica es de “comparabilidad de riesgo”: si el flujo que se está evaluando no tiene un riesgo sistemático parecido al del equity de \texttt{KO} (por ejemplo, por apalancamiento distinto o por exposición sectorial distinta), entonces el ajuste correcto es revisar la $\beta$ que representa ese riesgo (y, si es necesario, el benchmark), en lugar de interpretar $k_e$ como una tasa universal aplicable a cualquier flujo.
+
+\newpage
+
+# Aplicación 2. Ejemplo hipotético: uso práctico de $k_e$.
+
+Suponga que un analista quiere valorar el equity de \texttt{KO} con un flujo anual al accionista (FCFE) relativamente estable. Tiene una proyección simple: el flujo del próximo año será 100 unidades y espera que crezca 2\% anual en el largo plazo. En este punto, el problema no es “si el flujo es correcto”, sino \emph{qué rendimiento exigir} dado el riesgo. Con $\widehat{\beta}_{KO}\approx 0.49$, el CAPM sugiere que el costo de equity es moderado y que depende del supuesto de prima de mercado: si el analista adopta un escenario conservador ($ERP$ bajo), el rendimiento requerido para el equity cae cerca de la parte baja del rango (aprox. 4.1\%); si adopta un escenario más exigente ($ERP$ alto), sube hacia la parte alta (aprox. 6.1\%). 
+
+La consecuencia económica es inmediata: con un $k_e$ más bajo, el mismo flujo “vale más” hoy; con un $k_e$ más alto, “vale menos”. Por eso el resultado se usa como \emph{regla de consistencia}: el analista no reporta un único valor como verdad, sino un intervalo de valuación coherente con supuestos explícitos sobre $ERP$ y con una $\beta$ estimada. Además, el analista pregunta si el flujo realmente tiene el riesgo del equity de \texttt{KO}. Si el flujo proviene de una expansión en un país con alta incertidumbre regulatoria, o de una línea de negocio con exposición distinta al ciclo económico, entonces la “comparabilidad de riesgo” falla: el ajuste correcto no es insistir en el mismo $k_e$, sino justificar por qué la exposición sistemática del proyecto debería ser mayor o menor que la de \texttt{KO}.
+
+\newpage
+
+# Aplicación 3. Contexto y objetivo: alpha de Jensen (\texttt{FDGRX}).
+
+\begin{itemize}
+\item Cuándo es útil: esta aplicación es relevante cuando se quiere evaluar el desempeño de un fondo o estrategia más allá de su rendimiento promedio, distinguiendo cuánto proviene de exposición al mercado y cuánto queda como excedente residual. El objetivo no es “predecir” rendimientos, sino evaluar si el desempeño observado es consistente con el riesgo sistemático asumido.
+
+\item Planteamiento: mantenemos la notación en exceso. Para el fondo (aquí \texttt{FDGRX}) definimos $r_{\text{fondo},t}=R_{\text{fondo},t}-R_{f,t}$ y para el mercado $r_{M,t}=R_{M,t}-R_{f,t}$, con el S\&P 500 como benchmark.
+
+\item Modelo: estimamos la regresión CAPM en exceso
+\[
+r_{\text{fondo},t}=\alpha+\beta\,r_{M,t}+\varepsilon_t.
+\]
+En esta aplicación, $\widehat{\alpha}$ es el objeto central: mide el rendimiento en exceso promedio del fondo que no queda explicado por su exposición al mercado dada por $\widehat{\beta}$.
+
+\item Interpretación operativa: $\widehat{\beta}$ resume “cuánto mercado” hay en el fondo. $\widehat{\alpha}$ resume “qué queda” después de descontar ese componente de mercado. Un $\widehat{\alpha}>0$ sugiere desempeño en exceso no atribuible a la exposición al benchmark en la muestra; un $\widehat{\alpha}<0$ sugiere lo contrario.
+
+\item Alcance y cautelas: $\widehat{\alpha}$ es ex post y es condicional a (i) la ventana de estimación, (ii) la frecuencia mensual, y (iii) el benchmark elegido. Por ello, se interpreta como evidencia descriptiva y comparativa en la muestra, no como garantía de desempeño futuro.
+\end{itemize}
+
+\newpage
+
+# Aplicación 3. Estimación OLS: $\widehat{\alpha}$ y $\widehat{\beta}$ de \texttt{FDGRX}.
+
+\begin{itemize}
+\item Objetivo: obtener una primera lectura empírica del desempeño ajustado por mercado de \texttt{FDGRX} en la muestra.
+\item Conservamos la misma especificación en exceso usada en las aplicaciones anteriores:
+\[
+r_{i,t}=\alpha_i+\beta_i r_{M,t}+\varepsilon_{i,t},
+\]
+donde ahora $r_{i,t}$ corresponde al fondo \texttt{FDGRX}.
+\item En esta página reportamos OLS como línea base; en la siguiente página añadiremos inferencia robusta (HAC) centrada en $\widehat{\alpha}$.
+\end{itemize}
+
+```{r}
+# Filtrar FDGRX
+fdgrx_df <- capm_practical_data |>
+  filter(ticker == "FDGRX") |>
+  select(date, excess_ret, mkt_excess) |>
+  drop_na()
+
+# Regresión CAPM en exceso (OLS)
+fit_fdgrx <- lm(excess_ret ~ mkt_excess, data = fdgrx_df)
+
+# Tabla OLS (alpha y beta)
+fdgrx_ols <- tidy(fit_fdgrx) |>
+  mutate(term = recode(term, `(Intercept)` = "alpha", mkt_excess = "beta")) |>
+  select(term, estimate, std.error, statistic, p.value)
+
+fdgrx_ols
+```
+
+\newpage
+
+# Aplicación 3. Inferencia robusta (HAC): $\widehat{\alpha}$ en \texttt{FDGRX}.
+
+\begin{itemize}
+\item Objetivo: evaluar la evidencia estadística de $\widehat{\alpha}$ usando errores estándar robustos a heterocedasticidad y autocorrelación (Newey--West).
+\item Mantenemos la misma regresión estimada en la página anterior y comparamos OLS vs HAC para transparencia inferencial.
+\item Foco de decisión: en esta aplicación el parámetro central es $\widehat{\alpha}$; $\widehat{\beta}$ se reporta como control de exposición al mercado.
+\end{itemize}
+
+```{r}
+# Errores estándar HAC Newey--West (misma lógica de Aplicación 1)
+nw_L_fdgrx <- 3
+
+fdgrx_hac <- coeftest(
+  fit_fdgrx,
+  vcov. = NeweyWest(fit_fdgrx, lag = nw_L_fdgrx, prewhite = FALSE)
+) |>
+  tidy() |>
+  mutate(
+    term = recode(term, `(Intercept)` = "alpha", mkt_excess = "beta"),
+    method = "HAC (Newey-West)",
+    nw_lag = nw_L_fdgrx
+  ) |>
+  select(method, term, estimate, std.error, statistic, p.value, nw_lag)
+
+fdgrx_ols_cmp <- fdgrx_ols |>
+  mutate(method = "OLS", nw_lag = NA_integer_) |>
+  select(method, term, estimate, std.error, statistic, p.value, nw_lag)
+
+fdgrx_inference <- bind_rows(fdgrx_ols_cmp, fdgrx_hac) |>
+  arrange(term, method)
+
+fdgrx_inference
+```
+
+\newpage
+
+# Aplicación 3. Visualización: recta y bandas de media condicional (\texttt{FDGRX}).
+
+```{r}
+# Coeficientes estimados
+coef_fdgrx <- coef(fit_fdgrx)
+alpha_hat_fdgrx <- unname(coef_fdgrx[1])
+beta_hat_fdgrx  <- unname(coef_fdgrx[2])
+
+# Grid para dibujar bandas
+x_grid_fdgrx <- tibble(
+  mkt_excess = seq(
+    min(fdgrx_df$mkt_excess, na.rm = TRUE),
+    max(fdgrx_df$mkt_excess, na.rm = TRUE),
+    length.out = 200
+  )
+)
+
+# Banda OLS (media condicional)
+pred_ols_fdgrx <- predict(fit_fdgrx, newdata = x_grid_fdgrx, interval = "confidence", level = 0.95)
+pred_ols_fdgrx <- as_tibble(pred_ols_fdgrx) |>
+  bind_cols(x_grid_fdgrx) |>
+  rename(fit = fit, lwr = lwr, upr = upr)
+
+# Banda HAC (media condicional)
+V_nw_fdgrx <- NeweyWest(fit_fdgrx, lag = nw_L_fdgrx, prewhite = FALSE)
+X_new_fdgrx <- model.matrix(~ mkt_excess, data = x_grid_fdgrx)
+fit_hat_fdgrx <- as.numeric(X_new_fdgrx %*% coef(fit_fdgrx))
+se_nw_fdgrx <- sqrt(diag(X_new_fdgrx %*% V_nw_fdgrx %*% t(X_new_fdgrx)))
+crit_fdgrx <- qnorm(0.975)
+
+pred_nw_fdgrx <- tibble(
+  mkt_excess = x_grid_fdgrx$mkt_excess,
+  fit = fit_hat_fdgrx,
+  lwr = fit_hat_fdgrx - crit_fdgrx * se_nw_fdgrx,
+  upr = fit_hat_fdgrx + crit_fdgrx * se_nw_fdgrx
+)
+
+ggplot(fdgrx_df, aes(x = mkt_excess, y = excess_ret)) +
+  geom_hline(yintercept = 0, linetype = "dashed", linewidth = 0.3) +
+  geom_vline(xintercept = 0, linetype = "dashed", linewidth = 0.3) +
+  geom_ribbon(
+    data = pred_ols_fdgrx,
+    aes(x = mkt_excess, ymin = lwr, ymax = upr, fill = "OLS"),
+    alpha = 0.35, inherit.aes = FALSE
+  ) +
+  geom_ribbon(
+    data = pred_nw_fdgrx,
+    aes(x = mkt_excess, ymin = lwr, ymax = upr, fill = "HAC (Newey--West)"),
+    alpha = 0.35, inherit.aes = FALSE
+  ) +
+  geom_abline(intercept = alpha_hat_fdgrx, slope = beta_hat_fdgrx, linewidth = 0.8) +
+  geom_point(color = "darkgreen", alpha = 0.55, size = 1.5) +
+  labs(
+    title = expression(atop("FDGRX en exceso: estimación de"~hat(alpha)~"y"~hat(beta),
+                            r[i,t] == hat(alpha)[i] + hat(beta)[i] %.% r[M,t] + epsilon[i,t])),
+    x = expression(r[M,t]~"(S&P 500 en exceso)"),
+    y = expression(r[i,t]~"(FDGRX en exceso)"),
+    fill = "Bandas 95%"
+  ) +
+  theme_classic(base_size = 12)
+```
+
+\newpage
+
+# Aplicación 3. Visualización (zoom): foco en $\widehat{\alpha}$ y bandas al 95\% (\texttt{FDGRX}).
+
+```{r}
+# Zoom fijo alrededor de r_M = 0 para visualizar mejor el intercepto (alpha)
+pred_ols_zoom <- pred_ols_fdgrx |>
+  filter(mkt_excess >= -1, mkt_excess <= 1)
+
+pred_nw_zoom <- pred_nw_fdgrx |>
+  filter(mkt_excess >= -1, mkt_excess <= 1)
+
+ggplot(fdgrx_df, aes(x = mkt_excess, y = excess_ret)) +
+  geom_hline(yintercept = 0, linetype = "dashed", linewidth = 0.3) +
+  geom_vline(xintercept = 0, linetype = "dashed", linewidth = 0.3) +
+  geom_ribbon(
+    data = pred_ols_zoom,
+    aes(x = mkt_excess, ymin = lwr, ymax = upr, fill = "OLS"),
+    alpha = 0.35, inherit.aes = FALSE
+  ) +
+  geom_ribbon(
+    data = pred_nw_zoom,
+    aes(x = mkt_excess, ymin = lwr, ymax = upr, fill = "HAC (Newey--West)"),
+    alpha = 0.35, inherit.aes = FALSE
+  ) +
+  geom_abline(intercept = alpha_hat_fdgrx, slope = beta_hat_fdgrx, linewidth = 0.8) +
+  geom_point(color = "darkgreen", alpha = 0.55, size = 3) +
+  coord_cartesian(xlim = c(-1, 1), ylim = c(-1, 2.5)) +
+  labs(
+    title = expression(atop("FDGRX en exceso (zoom): evidencia visual de"~hat(alpha)~"> 0",
+                            "Bandas al 95% para la media condicional (OLS vs HAC)")),
+    x = expression(r[M,t]~"(S&P 500 en exceso)"),
+    y = expression(r[i,t]~"(FDGRX en exceso)"),
+    fill = "Bandas 95%"
+  ) +
+  theme_classic(base_size = 12)
+```
+
+\newpage
+
+# Aplicación 3. Resultados e interpretación: desempeño ajustado por mercado (\texttt{FDGRX}).
+
+\begin{itemize}
+\item Estimaciones principales (mensuales, en exceso):
+
+$\widehat{\alpha}_{FDGRX}=1.0512,\quad SE_{OLS}=0.2781,\; t=3.780,\; p\approx 2.47\times 10^{-4}$,
+
+$SE_{HAC}=0.3045,\; t_{HAC}=3.452,\; p_{HAC}\approx 7.72\times 10^{-4}$.
+
+$\widehat{\beta}_{FDGRX}\approx 1.1816$.
+
+\item Lectura de $\widehat{\alpha}$ (objeto central): el estimado puntual es positivo y estadísticamente significativo tanto con OLS como con HAC. En esta muestra hay evidencia de un desempeño residual positivo después de controlar por exposición al mercado.
+
+\item Lectura de $\widehat{\beta}$: el fondo exhibe una exposición sistemática superior a la del mercado. Con $\widehat{\beta}\approx 1.18$, un cambio de $1\%$ en el exceso del mercado se asocia, en promedio condicional, con un cambio cercano a $1.18\%$ en el exceso de \texttt{FDGRX}.
+
+\item Mensaje operativo conjunto: en esta ventana, \texttt{FDGRX} combina una exposición sistemática elevada con un componente residual promedio positivo (alpha de Jensen) estadísticamente distinto de cero.
+
+\item Cautela de uso: esta evidencia es ex post y condicional a la ventana de 120 meses, frecuencia mensual y benchmark S\&P 500. Se interpreta como diagnóstico de muestra y de gestión en ese periodo, no como garantía de desempeño futuro.
+\end{itemize}
+
+\newpage
+
+# Aplicación 3. Cierre operativo: cómo usar $\widehat{\alpha}_{FDGRX}$ en decisión.
+
+\begin{itemize}
+\item Regla de lectura: en esta muestra, la evidencia de $\widehat{\alpha}_{FDGRX}>0$ y significativa sugiere que el fondo entregó rendimiento en exceso promedio no explicado por su exposición al mercado (S\&P 500), dentro del CAPM de un factor.
+
+\item Uso práctico: este resultado puede emplearse como insumo comparativo frente a otros fondos con mandato similar. La comparación relevante no es solo “quién rinde más”, sino quién mantiene mejor desempeño ajustado por riesgo sistemático bajo el mismo benchmark, ventana y frecuencia.
+
+\item Límite metodológico: una alpha positiva en CAPM no prueba por sí sola “habilidad pura”, porque puede capturar exposiciones a factores omitidos (por ejemplo, estilo growth, momentum o concentración sectorial). Si se busca atribución más fina de gestión, el siguiente paso natural es extender a un modelo multifactor.
+
+\item Mensaje final de la aplicación: en esta práctica, el CAPM en exceso permite separar tres piezas con sentido operativo: exposición sistemática ($\widehat{\beta}$), rendimiento requerido ($k_e$) y desempeño residual ajustado por mercado ($\widehat{\alpha}$). La calidad de la lectura depende de mantener supuestos explícitos y comparabilidad de diseño empírico.
+\end{itemize}
+
+\newpage
+
+# Conclusiones.
+
+\begin{itemize}
+\item Aprendizaje central: una misma regresión CAPM en exceso puede responder preguntas distintas según el parámetro de interés. En esta práctica, ese mapa fue: $\widehat{\beta}$ para exposición, $k_e$ para tasa requerida y $\widehat{\alpha}$ para desempeño ajustado por mercado.
+
+\item Mensaje metodológico: los resultados son útiles si se mantienen supuestos explícitos y consistencia de diseño (misma frecuencia, misma ventana y mismo benchmark). Cambiar esos elementos cambia la lectura económica de los coeficientes.
+
+\item Mensaje de decisión: en aplicaciones reales, el valor de los resultados no está en “predecir” retornos puntuales, sino en mejorar decisiones comparativas: cuánto riesgo sistemático se asume, qué rendimiento exigir y qué parte del desempeño queda sin explicar por el mercado.
+
+\item Criterio de prudencia: las estimaciones son evidencia de muestra (ex post), no garantías de desempeño futuro. Por eso, la interpretación correcta es condicional y debe acompañarse de juicio económico.
+\end{itemize}
