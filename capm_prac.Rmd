@@ -56,6 +56,10 @@ knitr::opts_chunk$set(
   class.source = "numberLines",   # activa numeración en todos los chunks con echo=TRUE
   Sys.setlocale("LC_TIME", "es_ES.UTF-8")
 )
+
+fmt2 <- function(x) sprintf("%.2f", x)
+fmt3 <- function(x) sprintf("%.3f", x)
+fmt_p <- function(p) ifelse(is.na(p), NA_character_, ifelse(p < 0.001, "<0.001", sprintf("%.3f", p)))
 ```
 
 \newpage
@@ -71,7 +75,7 @@ knitr::opts_chunk$set(
 $$
 r_{i,t}=\alpha_i+\beta_i r_{M,t}+\varepsilon_{i,t},
 $$
-con objetivos distintos: (1) estimar $\hat\beta$ para cuantificar exposición al mercado; (2) derivar un rendimiento requerido del equity $k_e \approx R_f+\hat\beta\cdot ERP$; y (3) evaluar desempeño de un fondo con el alpha de Jensen $\hat\alpha$.
+con objetivos distintos: (1) estimar $\hat\beta$ para cuantificar exposición al mercado; (2) derivar un rendimiento requerido del equity $k_e = R_f+\hat\beta\cdot ERP$; y (3) evaluar desempeño de un fondo con el alpha de Jensen $\hat\alpha$.
 \item A diferencia del video académico, aquí no se realizan estimaciones en sección cruzada ni Fama--MacBeth, ya que esas técnicas se orientan a estimar el precio del riesgo y evaluar predicciones del modelo en un conjunto de activos. En este video el énfasis es el uso práctico de $\hat\beta$, $k_e$ y $\hat\alpha$ como insumos para decisión, con supuestos explícitos.
 \item La muestra es mensual y utiliza una ventana de 120 observaciones hasta diciembre de 2025. Se enfatiza que $\beta$ y $\alpha$ dependen de ventana, frecuencia y benchmark, por lo que su interpretación debe entenderse como condicional al diseño empírico adoptado.
 \end{itemize}
@@ -82,7 +86,9 @@ con objetivos distintos: (1) estimar $\hat\beta$ para cuantificar exposición al
 # Paquetes.
 
 ```{r}
-library(tidyverse)
+library(dplyr)
+library(tidyr)
+library(tibble)
 library(lubridate)
 library(tidyquant)
 library(broom)
@@ -437,19 +443,19 @@ conviene distinguir tres lecturas que responden a preguntas distintas. La difere
 \textbf{Cuándo se usa.} Como punto de partida, cuando el objetivo es construir intuición rápida y comparaciones: (i) cuantificar la exposición al mercado con $\widehat{\beta}$ y (ii) evaluar escenarios simples (por ejemplo, un mes de mercado “bueno” o “malo”) en términos de magnitudes puntuales.
 
 \begin{itemize}
-\item Interpretación de $\widehat{\beta}$: la sensibilidad estimada es mayor que uno. En la muestra, \texttt{AAPL} reacciona más que proporcionalmente a variaciones del S\&P 500 en exceso de la tasa libre de riesgo. En términos marginales, un cambio de $1\%$ en $r_{M,t}$ se asocia con un cambio de aproximadamente $1.20\%$ en $r_{i,t}$.
+\item Interpretación de $\widehat{\beta}$: la sensibilidad estimada es mayor que uno. En la muestra, \texttt{AAPL} reacciona más que proporcionalmente a variaciones del S\&P 500 en exceso de la tasa libre de riesgo. En términos marginales, un cambio de $1\%$ en $r_{M,t}$ se asocia con un cambio de $`r fmt2(coef(fit_aapl)[["mkt_excess"]])`\%$ en $r_{i,t}$.
 
 \item Escenarios (solo exposición al mercado). Si el objetivo es aislar la parte atribuible \emph{únicamente} a exposición sistemática, el componente asociado al mercado es
 \[
 \widehat{\beta}\,r_M.
 \]
-Para un escenario $r_M=+5\%$, $\widehat{\beta}\,r_M=1.1957\times 5\%\approx 5.98\%$. Para $r_M=-5\%$, el componente es $\approx -5.98\%$.
+Para un escenario $r_M=+5\%$, $\widehat{\beta}\,r_M = `r fmt2(coef(fit_aapl)[["mkt_excess"]])`\times 5\% = `r fmt2(coef(fit_aapl)[["mkt_excess"]] * 5)`\%$. Para $r_M=-5\%$, el componente es $`r fmt2(-coef(fit_aapl)[["mkt_excess"]] * 5)`\%$.
 
 \item Escenarios (media condicional puntual). Si el objetivo es aproximar la media condicional en exceso bajo la especificación estimada,
 \[
 \widehat r_{i,t}(r_M)=\widehat{\alpha}+\widehat{\beta}\,r_M,
 \]
-donde $r_M$ se interpreta como un escenario para el rendimiento del mercado en exceso. Para $r_M=+5\%$, $\widehat r_{i,t}\approx 1.0693+1.1957\times 5\%\approx 7.05\%$. Para $r_M=-5\%$, $\widehat r_{i,t}\approx 1.0693-5.98\%\approx -4.91\%$.
+donde $r_M$ se interpreta como un escenario para el rendimiento del mercado en exceso. Para $r_M=+5\%$, $\widehat r_{i,t} = `r fmt2(coef(fit_aapl)[["(Intercept)"]])` + `r fmt2(coef(fit_aapl)[["mkt_excess"]])`\times 5\% = `r fmt2(coef(fit_aapl)[["(Intercept)"]] + coef(fit_aapl)[["mkt_excess"]] * 5)`\%$. Para $r_M=-5\%$, $\widehat r_{i,t} = `r fmt2(coef(fit_aapl)[["(Intercept)"]] - coef(fit_aapl)[["mkt_excess"]] * 5)`\%$.
 En esta descomposición, $\widehat{\beta}\,r_M$ captura exposición al mercado y $\widehat{\alpha}$ representa un componente promedio residual en la muestra, condicionado al benchmark y al periodo.
 \end{itemize}
 
@@ -496,7 +502,7 @@ ci_mean_df
 \]
 y el intervalo $[\text{lwr},\text{upr}]$ es un rango de incertidumbre para ese \emph{promedio condicional}, no para una observación individual.
 
-\item Resultados en escenarios (HAC, 95\%). Para $r_M=-5\%$, el modelo implica $\widehat r_{i,t}\approx -4.91\%$ y un intervalo al 95\% de $[-6.18\%,-3.63\%]$ (EE HAC $\approx 0.651$). Para $r_M=+5\%$, $\widehat r_{i,t}\approx 7.05\%$ y el intervalo al 95\% es $[5.38\%,8.71\%]$ (EE HAC $\approx 0.849$).
+\item Resultados en escenarios (HAC, 95\%). Para $r_M=-5\%$, el modelo implica $\widehat r_{i,t} = `r fmt2(ci_mean_df$fit[ci_mean_df$rM == -5])`\%$ y un intervalo al 95\% de [$`r fmt2(ci_mean_df$lwr[ci_mean_df$rM == -5])`\%$, $`r fmt2(ci_mean_df$upr[ci_mean_df$rM == -5])`\%$], con EE HAC $= `r fmt2(ci_mean_df$se[ci_mean_df$rM == -5])`$. Para $r_M=+5\%$, $\widehat r_{i,t} = `r fmt2(ci_mean_df$fit[ci_mean_df$rM == 5])`\%$ y el intervalo al 95\% es [$`r fmt2(ci_mean_df$lwr[ci_mean_df$rM == 5])`\%$, $`r fmt2(ci_mean_df$upr[ci_mean_df$rM == 5])`\%$], con EE HAC $= `r fmt2(ci_mean_df$se[ci_mean_df$rM == 5])`$.
 
 \item Lectura práctica: estos rangos responden a \emph{“si el mercado en exceso fuera $r_M$, ¿qué tan imprecisa es la media que el modelo asigna a \texttt{AAPL}?”} dada la estimación de $\alpha$ y $\beta$ y la corrección HAC.
 \end{itemize}
@@ -552,9 +558,9 @@ pi_df
 \begin{itemize}
 \item Estos intervalos son de \emph{predicción} al 95\% para una observación futura $r_{i,t}$ condicionada en $r_{M,t}=r_M$. A diferencia del caso anterior, aquí se incorpora la dispersión no explicada por el mercado, $\varepsilon_{i,t}$, a través de la varianza residual $\widehat{\sigma}^2$ (estimada por OLS como aproximación práctica en esta aplicación).
 
-\item Por construcción, el intervalo de predicción es sustancialmente más amplio que el intervalo para la media condicional: además de la incertidumbre sobre $(\widehat{\alpha},\widehat{\beta})$, incorpora variación idiosincrática mensual de \texttt{AAPL} que el mercado no captura. En los escenarios considerados, el error estándar de la media condicional es relativamente pequeño (por ejemplo, $\widehat{se}_{mean}\approx 0.65$ para $r_M=-5\%$ y $\approx 0.85$ para $r_M=+5\%$), mientras que el error estándar de predicción es cercano a $6.1$, reflejando que la componente residual domina la dispersión mensual.
+\item Por construcción, el intervalo de predicción es sustancialmente más amplio que el intervalo para la media condicional: además de la incertidumbre sobre $(\widehat{\alpha},\widehat{\beta})$, incorpora variación idiosincrática mensual de \texttt{AAPL} que el mercado no captura. En los escenarios considerados, el error estándar de la media condicional es relativamente pequeño, con $\widehat{se}_{mean}= `r fmt2(pi_df$se_mean[pi_df$rM == -5])`$ para $r_M=-5\%$ y $\widehat{se}_{mean}= `r fmt2(pi_df$se_mean[pi_df$rM == 5])`$ para $r_M=+5\%$, mientras que el error estándar de predicción es $\widehat{se}_{pred}= `r fmt2(pi_df$se_pred[pi_df$rM == -5])`$ y $\widehat{se}_{pred}= `r fmt2(pi_df$se_pred[pi_df$rM == 5])`$, reflejando que la componente residual domina la dispersión mensual.
 
-\item Resultados en escenarios (predicción, 95\%). Para $r_M=-5\%$, el valor central del modelo es $\widehat r_{i,t}\approx -4.91\%$ y el intervalo de predicción al 95\% es $[-16.82\%,\,7.00\%]$. Para $r_M=+5\%$, $\widehat r_{i,t}\approx 7.05\%$ y el intervalo de predicción es $[-4.91\%,\,19.01\%]$.
+\item Resultados en escenarios (predicción, 95\%). Para $r_M=-5\%$, el valor central del modelo es $\widehat r_{i,t} = `r fmt2(pi_df$fit[pi_df$rM == -5])`\%$ y el intervalo de predicción al 95\% es [$`r fmt2(pi_df$pred_lwr[pi_df$rM == -5])`\%$, $`r fmt2(pi_df$pred_upr[pi_df$rM == -5])`\%$]. Para $r_M=+5\%$, $\widehat r_{i,t} = `r fmt2(pi_df$fit[pi_df$rM == 5])`\%$ y el intervalo de predicción es [$`r fmt2(pi_df$pred_lwr[pi_df$rM == 5])`\%$, $`r fmt2(pi_df$pred_upr[pi_df$rM == 5])`\%$].
 
 \item Lectura práctica: estos rangos responden a \emph{“si el mercado en exceso fuera $r_M$, ¿qué rango de retornos en exceso mensuales podría observar en \texttt{AAPL}?”} dentro del marco lineal estimado. La amplitud del intervalo subraya que, a frecuencia mensual, una fracción importante de la variación en retornos proviene de componentes idiosincráticos, aun cuando la exposición al mercado (capturada por $\widehat{\beta}$) sea estimada con precisión.
 \end{itemize}
@@ -689,7 +695,7 @@ El insumo empírico de esta aplicación es $\widehat{\beta}_{KO}$.
 
 \item Paso 2 (costo de capital en niveles): el costo de equity se reporta como un rendimiento \emph{total}. Bajo el CAPM,
 \[
-k_e \approx R_f + \widehat{\beta}_{KO}\cdot ERP,
+k_e = R_f + \widehat{\beta}_{KO}\cdot ERP,
 \]
 donde $ERP$ es la prima de riesgo del mercado definida como el exceso esperado del mercado,
 \[
@@ -764,15 +770,15 @@ ggplot(ko_df, aes(x = mkt_excess, y = excess_ret)) +
 \begin{itemize}
 \item Estimación (OLS):
 
-$\widehat{\alpha}_{KO}=0.1437,\quad SE=0.3838,\; t=0.375,\; p=0.709$,
+$\widehat{\alpha}_{KO}=`r fmt2(ko_ols$estimate[ko_ols$term == "alpha"])`,\quad SE=`r fmt2(ko_ols$std.error[ko_ols$term == "alpha"])`,\; t=`r fmt2(ko_ols$statistic[ko_ols$term == "alpha"])`,\; p=`r fmt_p(ko_ols$p.value[ko_ols$term == "alpha"])`$,
 
-$\widehat{\beta}_{KO}=0.4882,\quad SE=0.0865,\; t=5.644,\; p\approx 1.16\times 10^{-7}$.
+$\widehat{\beta}_{KO}=`r fmt2(ko_ols$estimate[ko_ols$term == "beta"])`,\quad SE=`r fmt2(ko_ols$std.error[ko_ols$term == "beta"])`,\; t=`r fmt2(ko_ols$statistic[ko_ols$term == "beta"])`,\; p=`r fmt_p(ko_ols$p.value[ko_ols$term == "beta"])`$.
 
-\item Lectura operativa: $\widehat{\beta}_{KO}\approx 0.49$ implica que, en esta ventana y con el S\&P 500 como benchmark, \texttt{KO} exhibe una exposición al riesgo de mercado inferior a la unidad. Este es el insumo central para convertir prima de mercado esperada en un rendimiento requerido para el equity.
+\item Lectura operativa: $\widehat{\beta}_{KO}=`r fmt2(ko_ols$estimate[ko_ols$term == "beta"])`$ implica que, en esta ventana y con el S\&P 500 como benchmark, \texttt{KO} exhibe una exposición al riesgo de mercado inferior a la unidad. Este es el insumo central para convertir prima de mercado esperada en un rendimiento requerido para el equity.
 
 \item Nota sobre $\widehat{\alpha}_{KO}$: el intercepto no es estadísticamente distinto de cero; en esta aplicación no se usa para construir $k_e$. El costo de equity bajo CAPM se apoya en $R_f$ y en $ERP=E(r_M)$, escalados por $\widehat{\beta}_{KO}$.
 
-\item Transición: en el siguiente bloque calculamos $k_e \approx R_f+\widehat{\beta}_{KO}\cdot ERP$, reportando un caso base y sensibilidad ante distintos supuestos de $ERP$.
+\item Transición: en el siguiente bloque calculamos $k_e = R_f+\widehat{\beta}_{KO}\cdot ERP$, reportando un caso base y sensibilidad ante distintos supuestos de $ERP$.
 \end{itemize}
 
 \newpage
@@ -821,28 +827,28 @@ ke_table
 \begin{itemize}
 \item Regla operativa (anual): con $ERP=E(r_M)$ en porcentaje anual,
 \[
-k_e \approx R_f + \widehat{\beta}_{KO}\cdot ERP.
+k_e = R_f + \widehat{\beta}_{KO}\cdot ERP.
 \]
-Aquí $R_f$ se anualiza a partir del promedio mensual observado en la ventana. En tu muestra, el promedio anualizado es $R_f \approx 2.1622\%$.
+Aquí $R_f$ se anualiza a partir del promedio mensual observado en la ventana. En tu muestra, el promedio anualizado es $R_f = `r fmt2(rf_ann)`\%$.
 
-\item Resultados (caso base y sensibilidad): con $\widehat{\beta}_{KO}=0.4882$, el costo de equity queda:
+\item Resultados (caso base y sensibilidad): con $\widehat{\beta}_{KO}=`r fmt2(beta_ko_hat)`$, el costo de equity queda:
 \[
-k_e \approx 2.1622\% + 0.4882\times ERP.
+k_e = `r fmt2(rf_ann)`\% + `r fmt2(beta_ko_hat)`\times ERP.
 \]
-En particular, si $ERP=4\%$, $k_e\approx 4.115\%$; si $ERP=5\%$, $k_e\approx 4.603\%$; si $ERP=6\%$, $k_e\approx 5.091\%$; si $ERP=7\%$, $k_e\approx 5.580\%$; y si $ERP=8\%$, $k_e\approx 6.068\%$.
+En particular, si $ERP=4\%$, $k_e=`r fmt2(ke_table$ke_ann[ke_table$ERP_ann == 4])`\%$; si $ERP=5\%$, $k_e=`r fmt2(ke_table$ke_ann[ke_table$ERP_ann == 5])`\%$; si $ERP=6\%$, $k_e=`r fmt2(ke_table$ke_ann[ke_table$ERP_ann == 6])`\%$; si $ERP=7\%$, $k_e=`r fmt2(ke_table$ke_ann[ke_table$ERP_ann == 7])`\%$; y si $ERP=8\%$, $k_e=`r fmt2(ke_table$ke_ann[ke_table$ERP_ann == 8])`\%$.
 
-\item Lectura de sensibilidad: un cambio de 1 punto porcentual en el $ERP$ anual cambia $k_e$ en aproximadamente $\widehat{\beta}_{KO}\approx 0.488$ puntos porcentuales. Esta elasticidad es el vínculo operativo entre exposición al mercado y rendimiento requerido del equity.
+\item Lectura de sensibilidad: un cambio de 1 punto porcentual en el $ERP$ anual cambia $k_e$ en $\widehat{\beta}_{KO}=`r fmt2(beta_ko_hat)`$ puntos porcentuales. Esta elasticidad es el vínculo operativo entre exposición al mercado y rendimiento requerido del equity.
 
 \item Mensaje central: $\widehat{\beta}_{KO}$ determina \emph{cuánto} del supuesto sobre $ERP$ se traslada al costo de capital; el nivel de $k_e$ depende de manera importante del valor adoptado para $ERP$. Por ello, en aplicaciones prácticas es preferible reportar un rango de $ERP$ plausible en lugar de un único número.
 \end{itemize}
 
-Cierre (uso práctico, con supuestos explícitos): el propósito de estimar $k_e$ no es “adivinar” el rendimiento de \texttt{KO}, sino fijar un \emph{rendimiento requerido} para decisiones en las que el flujo relevante es del equity y el riesgo sistemático puede aproximarse por $\widehat{\beta}_{KO}$ frente al S\&P 500. Con $\widehat{\beta}_{KO}=0.4882$ y $R_f\approx 2.1622\%$ anual, el CAPM asigna un costo de equity entre $4.115\%$ y $6.068\%$ cuando se asume $ERP=E(r_M)$ entre $4\%$ y $8\%$. Este rango se usa como referencia operativa en tres situaciones típicas: (i) \emph{valuación por flujos al accionista} (FCFE/dividendos), donde se descuenta con $k_e$ y la lectura es que el valor es sensible al supuesto de $ERP$; (ii) \emph{evaluación de un proyecto desde el equity}, donde el criterio es comparar el rendimiento esperado del flujo al accionista con $k_e$ y exigir un margen de seguridad si el proyecto tiene incertidumbre adicional no capturada por el mercado; y (iii) \emph{insumo para WACC}, donde $k_e$ entra como componente del capital propio y la comparación relevante se hace a nivel de WACC solo si el flujo es FCFF. En todos los casos, la condición crítica es de “comparabilidad de riesgo”: si el flujo que se está evaluando no tiene un riesgo sistemático parecido al del equity de \texttt{KO} (por ejemplo, por apalancamiento distinto o por exposición sectorial distinta), entonces el ajuste correcto es revisar la $\beta$ que representa ese riesgo (y, si es necesario, el benchmark), en lugar de interpretar $k_e$ como una tasa universal aplicable a cualquier flujo.
+Cierre (uso práctico, con supuestos explícitos): el propósito de estimar $k_e$ no es “adivinar” el rendimiento de \texttt{KO}, sino fijar un \emph{rendimiento requerido} para decisiones en las que el flujo relevante es del equity y el riesgo sistemático puede aproximarse por $\widehat{\beta}_{KO}$ frente al S\&P 500. Con $\widehat{\beta}_{KO}=`r fmt2(beta_ko_hat)`$ y $R_f=`r fmt2(rf_ann)`\%$ anual, el CAPM asigna un costo de equity entre `r fmt2(min(ke_table$ke_ann))`\% y `r fmt2(max(ke_table$ke_ann))`\% cuando se asume $ERP=E(r_M)$ entre $4\%$ y $8\%$. Este rango se usa como referencia operativa en tres situaciones típicas: (i) \emph{valuación por flujos al accionista} (FCFE/dividendos), donde se descuenta con $k_e$ y la lectura es que el valor es sensible al supuesto de $ERP$; (ii) \emph{evaluación de un proyecto desde el equity}, donde el criterio es comparar el rendimiento esperado del flujo al accionista con $k_e$ y exigir un margen de seguridad si el proyecto tiene incertidumbre adicional no capturada por el mercado; y (iii) \emph{insumo para WACC}, donde $k_e$ entra como componente del capital propio y la comparación relevante se hace a nivel de WACC solo si el flujo es FCFF. En todos los casos, la condición crítica es de “comparabilidad de riesgo”: si el flujo que se está evaluando no tiene un riesgo sistemático parecido al del equity de \texttt{KO} (por ejemplo, por apalancamiento distinto o por exposición sectorial distinta), entonces el ajuste correcto es revisar la $\beta$ que representa ese riesgo (y, si es necesario, el benchmark), en lugar de interpretar $k_e$ como una tasa universal aplicable a cualquier flujo.
 
 \newpage
 
 # Aplicación 2. Ejemplo hipotético: uso práctico de $k_e$.
 
-Suponga que un analista quiere valorar el equity de \texttt{KO} con un flujo anual al accionista (FCFE) relativamente estable. Tiene una proyección simple: el flujo del próximo año será 100 unidades y espera que crezca 2\% anual en el largo plazo. En este punto, el problema no es “si el flujo es correcto”, sino \emph{qué rendimiento exigir} dado el riesgo. Con $\widehat{\beta}_{KO}\approx 0.49$, el CAPM sugiere que el costo de equity es moderado y que depende del supuesto de prima de mercado: si el analista adopta un escenario conservador ($ERP$ bajo), el rendimiento requerido para el equity cae cerca de la parte baja del rango (aprox. 4.1\%); si adopta un escenario más exigente ($ERP$ alto), sube hacia la parte alta (aprox. 6.1\%). 
+Suponga que un analista quiere valorar el equity de \texttt{KO} con un flujo anual al accionista (FCFE) relativamente estable. Tiene una proyección simple: el flujo del próximo año será 100 unidades y espera que crezca 2\% anual en el largo plazo. En este punto, el problema no es “si el flujo es correcto”, sino \emph{qué rendimiento exigir} dado el riesgo. Con $\widehat{\beta}_{KO}=`r fmt2(beta_ko_hat)`$, el CAPM sugiere que el costo de equity es moderado y que depende del supuesto de prima de mercado: si el analista adopta un escenario conservador ($ERP$ bajo), el rendimiento requerido para el equity cae cerca de la parte baja del rango (`r fmt2(min(ke_table$ke_ann))`\%); si adopta un escenario más exigente ($ERP$ alto), sube hacia la parte alta (`r fmt2(max(ke_table$ke_ann))`\%). 
 
 La consecuencia económica es inmediata: con un $k_e$ más bajo, el mismo flujo “vale más” hoy; con un $k_e$ más alto, “vale menos”. Por eso el resultado se usa como \emph{regla de consistencia}: el analista no reporta un único valor como verdad, sino un intervalo de valuación coherente con supuestos explícitos sobre $ERP$ y con una $\beta$ estimada. Además, el analista pregunta si el flujo realmente tiene el riesgo del equity de \texttt{KO}. Si el flujo proviene de una expansión en un país con alta incertidumbre regulatoria, o de una línea de negocio con exposición distinta al ciclo económico, entonces la “comparabilidad de riesgo” falla: el ajuste correcto no es insistir en el mismo $k_e$, sino justificar por qué la exposición sistemática del proyecto debería ser mayor o menor que la de \texttt{KO}.
 
@@ -1043,15 +1049,15 @@ ggplot(fdgrx_df, aes(x = mkt_excess, y = excess_ret)) +
 \begin{itemize}
 \item Estimaciones principales (mensuales, en exceso):
 
-$\widehat{\alpha}_{FDGRX}=1.0512,\quad SE_{OLS}=0.2781,\; t=3.780,\; p\approx 2.47\times 10^{-4}$,
+$\widehat{\alpha}_{FDGRX}=`r fmt2(fdgrx_ols$estimate[fdgrx_ols$term == "alpha"])`,\quad SE_{OLS}=`r fmt2(fdgrx_ols$std.error[fdgrx_ols$term == "alpha"])`,\; t=`r fmt2(fdgrx_ols$statistic[fdgrx_ols$term == "alpha"])`,\; p=`r fmt_p(fdgrx_ols$p.value[fdgrx_ols$term == "alpha"])`$,
 
-$SE_{HAC}=0.3045,\; t_{HAC}=3.452,\; p_{HAC}\approx 7.72\times 10^{-4}$.
+$SE_{HAC}=`r fmt2(fdgrx_hac$std.error[fdgrx_hac$term == "alpha"])`,\; t_{HAC}=`r fmt2(fdgrx_hac$statistic[fdgrx_hac$term == "alpha"])`,\; p_{HAC}=`r fmt_p(fdgrx_hac$p.value[fdgrx_hac$term == "alpha"])`$.
 
-$\widehat{\beta}_{FDGRX}\approx 1.1816$.
+$\widehat{\beta}_{FDGRX}=`r fmt2(fdgrx_ols$estimate[fdgrx_ols$term == "beta"])`$.
 
 \item Lectura de $\widehat{\alpha}$ (objeto central): el estimado puntual es positivo y estadísticamente significativo tanto con OLS como con HAC. En esta muestra hay evidencia de un desempeño residual positivo después de controlar por exposición al mercado.
 
-\item Lectura de $\widehat{\beta}$: el fondo exhibe una exposición sistemática superior a la del mercado. Con $\widehat{\beta}\approx 1.18$, un cambio de $1\%$ en el exceso del mercado se asocia, en promedio condicional, con un cambio cercano a $1.18\%$ en el exceso de \texttt{FDGRX}.
+\item Lectura de $\widehat{\beta}$: el fondo exhibe una exposición sistemática superior a la del mercado. Con $\widehat{\beta}=`r fmt2(fdgrx_ols$estimate[fdgrx_ols$term == "beta"])`$, un cambio de $1\%$ en el exceso del mercado se asocia, en promedio condicional, con un cambio de `r fmt2(fdgrx_ols$estimate[fdgrx_ols$term == "beta"])`\% en el exceso de \texttt{FDGRX}.
 
 \item Mensaje operativo conjunto: en esta ventana, \texttt{FDGRX} combina una exposición sistemática elevada con un componente residual promedio positivo (alpha de Jensen) estadísticamente distinto de cero.
 
