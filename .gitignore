@@ -2,3 +2,8 @@
 .Rhistory
 .RData
 .Ruserdata
+.r_libs/
+
+# Knitr/Quarto render artifacts and caches
+*_cache/
+*_files/
