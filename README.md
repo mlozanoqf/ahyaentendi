@@ -1,72 +1,90 @@
 # YouTube: "Ah, ya entendí."
 [![YouTube](https://img.shields.io/badge/YouTube-FF0000?logo=youtube&logoColor=white&style=flat-square)](https://www.youtube.com/@ahyaentendi)
 
-https://www.youtube.com/@ahyaentendi
+Canal: https://www.youtube.com/@ahyaentendi
 
-## Finanzas.
+## ¿Qué contiene este repositorio?
 
-1. [Rendimientos accionarios en R.](https://youtu.be/WVSP6z9EG44?si=QCmcGGaP-wFKw5_E) `rend.R`, `rend.Rmd`, `rend.pdf`
-1. [Rendimiento aritmético y geométrico.](https://youtu.be/Gm-NVynPD38?si=fqM1TZtu-LKI2tFO) `arigeo.Rmd`, `arigeo.pdf`
-1. [Señales de compra y venta con las Bandas de Bollinger.](https://youtu.be/U0Kyzy_GO50?si=R-Fza0KYI0dUJ7SF) *Sin apoyos ni código.*
-1. [Trading con velas japonesas | Introducción.](https://youtu.be/gAtX54Dp13M?si=8ImuIIXOMWmfuPVg) *Sin apoyos ni código.*
-1. [Robo-trader simple.](https://youtu.be/sT8B9L-tQ64?si=cYxoB77Is-gAxL1s) `robosim.Rmd`, `robosim.pdf`
-1. [Estimación muestral de la volatilidad no condicional.](https://youtu.be/0F3wUB2ATTA?si=u5upkUBmIeaOS1HR) `sampvar.Rmd`, `sampvar.pdf`
-1. [Estimación del modelo GARCH(1,1).](https://youtu.be/ZYkIVLPG0QU?si=adMPuBQC0rVdbfYH) `garch11.Rmd`, `garch11.pdf`
-1. [Estrategias de cobertura y especulación usando opciones financieras.](https://youtu.be/O3aSF-748v8?si=eysh-eUSv9J0h7kQ) *Sin apoyos ni código.*
-1. [Carteras de inversión | Diseño y análisis.](https://youtu.be/OO09EqT-aAM?si=h8HKi9_XXJ-rTFhD) `port.Rmd`, `port.pdf`
-1. [Cartera óptima con rendimiento objetivo.](https://youtu.be/D00PcnSUFbs?si=cP6VEiqcYjypPO_j) `port_robj.Rmd`, `port_robj.pdf`
-1. Enfoque gráfico de la probabilidad de default (próximamente).
-1. Regresión lineal con mínimos cuadrados ordinarios (próximamente).
-1. Análisis financiero de una empresa real (próximamente).
-1. Los últimos 25 años del S&P500 y tasas de interés (próximamente).
-1. CAPM como modelo de valuación | Estimación y evidencia empírica (próximamente). `capm_aca`
-1. CAPM aplicado | Beta, costo de capital y alpha (próximamente). `capm_prac`
+Este repositorio organiza materiales de apoyo para los videos del canal:
+- scripts en `R` y `MATLAB`,
+- documentos fuente en `.Rmd`,
+- versiones renderizadas en `.pdf`.
 
-## Finanzas para no financieros. `FPNF`
+## Cómo usar este repositorio
 
-1. [Dinero, tiempo e información.](https://youtu.be/8pIBBWmmLg8?si=fCzdzLQGsp6i7MLw) `FPNF dti.Rmd`, `FPNF-dti.pdf`
-1. [Estados financieros y su análisis | Introducción.](https://youtu.be/q3F4Uq782mo?si=tnJdnSS2cpQsfY9_) `FPNF estados.Rmd`, `FPNF-estados.pdf`
-1. [Valor del dinero en el tiempo.](https://youtu.be/OoBnNb-QhLw?si=LK_sRT5eoORaAgz0) `FPNF vpvf.Rmd`, `FPNF-vpvf.pdf`
-1. [Anualidades.](https://youtu.be/NbGjBMUfkVY?si=HULt6x9vWY_I8yd9) `FPNF an.Rmd`, `FPNF-an.pdf`
-1. [Derivaciones matemáticas | Valor del dinero en el tiempo.](https://youtu.be/fXL6R1nmN_g?si=5yPaX4GTfoFU4aKv) `FPNF mathvpvf.Rmd`, `FPNF-mathvpvf.pdf`
-1. Punto de equilibrio y margen de contribución (próximamente).
-1. Evaluación de proyectos (próximamente).
-1. Mercados financieros: acciones, bonos y tasas (próximamente).
+1. Elige un tema y abre el enlace del video.
+2. Descarga o abre el material asociado (ruta exacta en la columna **Material**).
+3. Si quieres reproducir resultados, usa el archivo `.Rmd` o `.m`; si quieres lectura rápida, usa el `.pdf`.
 
-## Shorts.
+## Finanzas
 
-1. La paradoja de Parrondo en finanzas.
-1. El sistema financiero.
-1. Correlación y causalidad.
-1. Contabilidad.
-1. Finanzas.
-1. Costo en contabilidad, finanzas y economía.
-1. Ventas en corto.
-1. La paradoja del rendimiento máximo.
+### Contenido disponible
 
+| Tema | Video | Material | Estado |
+|---|---|---|---|
+| Rendimientos accionarios en R. | [Ver](https://youtu.be/WVSP6z9EG44) | `rend.R`, `rend.Rmd`, `rend.pdf` | Disponible |
+| Rendimiento aritmético y geométrico. | [Ver](https://youtu.be/Gm-NVynPD38) | `arigeo.Rmd`, `arigeo.pdf` | Disponible |
+| Señales de compra y venta con las Bandas de Bollinger. | [Ver](https://youtu.be/U0Kyzy_GO50) | Sin apoyos ni código | Disponible |
+| Trading con velas japonesas \| Introducción. | [Ver](https://youtu.be/gAtX54Dp13M) | Sin apoyos ni código | Disponible |
+| Robo-trader simple. | [Ver](https://youtu.be/sT8B9L-tQ64) | `robosim.Rmd`, `robosim.pdf` | Disponible |
+| Estimación muestral de la volatilidad no condicional. | [Ver](https://youtu.be/0F3wUB2ATTA) | `sampvar.Rmd`, `sampvar.pdf` | Disponible |
+| Estimación del modelo GARCH(1,1). | [Ver](https://youtu.be/ZYkIVLPG0QU) | `garch11.Rmd`, `garch11.pdf` | Disponible |
+| Estrategias de cobertura y especulación usando opciones financieras. | [Ver](https://youtu.be/O3aSF-748v8) | Sin apoyos ni código | Disponible |
+| Carteras de inversión \| Diseño y análisis. | [Ver](https://youtu.be/OO09EqT-aAM) | `port.Rmd`, `port.pdf` | Disponible |
+| Cartera óptima con rendimiento objetivo. | [Ver](https://youtu.be/D00PcnSUFbs) | `port_robj.Rmd`, `port_robj.pdf` | Disponible |
 
-## Visualizaciones, códigos en MATLAB. `MATLAB`
+### Próximamente
 
-1. [Clayton Copula: random numbers.](https://youtu.be/vtzkgnWjFQ4?si=K6yAwV9FAvMgztIw) `Clayton.m`
-1. [Gumbel Copula: random numbers.](https://youtu.be/Oq27fu86ahU?si=mNtKDx9T5a7cqESP) `Gumbel.m`
-1. [Frank Copula: random numbers.](https://youtu.be/4OOF_FTrZ3w?si=2CNImRjpJUlqK9GW) `Frank.m`
-1. [Random numbers following a multivariate normal distribution.](https://youtu.be/cphvhtkpKoc?si=y3cIKrepSZg7ts0Q) `mvnormalmovie.m`
-1. [Histogram of a normal variable X.](https://youtu.be/P1Ky6-a8DE0?si=Cz3FJTCa_HU3ogZN) `normal.m`
-1. [1000 step version of four Wiener process.](https://youtu.be/X-VRWeqG_I8?si=tiVXoEB0bTXGIO89) `Wiener.m`
-1. [3D histogram of two independent normal variables.](https://youtu.be/5iv5Zksf_zo?si=ttnD8xnPpOw3qnuM) `3dhist.m`
-1. [US efficient frontier: 5 industry portfolios.](https://youtu.be/Fq4UlUCneyI?si=K-TJ1gFp0saVI7xs) `eff5ind.m`
-1. [US efficient frontiers: 5 and 12 industry portfolios.](https://youtu.be/_GnJRviyYJI?si=ayZ651SImGK9oqJe) `eff512ind.m`
-1. [US minimum variance portfolio composition: 5 industry portfolios.](https://youtu.be/paH1-bDPsA4?si=mjUIeZD-s4WTG1Hz) `weights5ind.m`
-1. [US minimum variance portfolio composition: 10 industry portfolios.](https://youtu.be/DyjQbKm-NdE?si=XYv-MYh4gbsQqWGj) `weights10ind.m`
+- Enfoque gráfico de la probabilidad de default.
+- Regresión lineal con mínimos cuadrados ordinarios.
+- Análisis financiero de una empresa real.
+- Los últimos 25 años del S&P500 y tasas de interés.
+- CAPM como modelo de valuación | Estimación y evidencia empírica (`capm_aca`).
+- CAPM aplicado | Beta, costo de capital y alpha (`capm_prac`).
 
-# Substack, contenido gratuito: "Ah, ya entendí."
+## Finanzas para no financieros (`FPNF/`)
 
-[![Substack](https://img.shields.io/badge/Substack-FF6719?logo=substack&logoColor=white&style=flat-square)](https://ahyaentendi.substack.com)
+### Contenido disponible
 
-https://ahyaentendi.substack.com/
+| Tema | Video | Material | Estado |
+|---|---|---|---|
+| Dinero, tiempo e información. | [Ver](https://youtu.be/8pIBBWmmLg8) | `FPNF/FPNF dti.Rmd`, `FPNF/FPNF-dti.pdf` | Disponible |
+| Estados financieros y su análisis \| Introducción. | [Ver](https://youtu.be/q3F4Uq782mo) | `FPNF/FPNF estados.Rmd`, `FPNF/FPNF-estados.pdf` | Disponible |
+| Valor del dinero en el tiempo. | [Ver](https://youtu.be/OoBnNb-QhLw) | `FPNF/FPNF vpvf.Rmd`, `FPNF/FPNF-vpvf.pdf` | Disponible |
+| Anualidades. | [Ver](https://youtu.be/NbGjBMUfkVY) | `FPNF/FPNF an.Rmd`, `FPNF/FPNF-an.pdf` | Disponible |
+| Derivaciones matemáticas \| Valor del dinero en el tiempo. | [Ver](https://youtu.be/fXL6R1nmN_g) | `FPNF/FPNF mathvpvf.Rmd`, `FPNF/FPNF-mathvpvf.pdf` | Disponible |
 
-1. [Riesgo climático y la tragedia de los horizontes temporales.](https://ahyaentendi.substack.com/p/riesgo-climatico-y-la-tragedia-de?r=7eldc0)
-1. [Amor, stock y flujos.](https://ahyaentendi.substack.com/p/amor-stock-y-flujos?r=7eldc0)
-1. Dinero e ideas (próximamente).
-1. La tasa de interés como precio del tiempo (próximamente).
-1. Finanzas como infraestructura social (próximamente).
+### Próximamente
+
+- Punto de equilibrio y margen de contribución.
+- Evaluación de proyectos.
+- Mercados financieros: acciones, bonos y tasas.
+
+## Shorts
+
+- La paradoja de Parrondo en finanzas.
+- El sistema financiero.
+- Correlación y causalidad.
+- Contabilidad.
+- Finanzas.
+- Costo en contabilidad, finanzas y economía.
+- Ventas en corto.
+- La paradoja del rendimiento máximo.
+
+## Visualizaciones, códigos en MATLAB (`MATLAB/`)
+
+### Contenido disponible
+
+| Tema | Video | Material | Estado |
+|---|---|---|---|
+| Clayton Copula: random numbers. | [Ver](https://youtu.be/vtzkgnWjFQ4) | `MATLAB/Clayton.m` | Disponible |
+| Gumbel Copula: random numbers. | [Ver](https://youtu.be/Oq27fu86ahU) | `MATLAB/Gumbel.m` | Disponible |
+| Frank Copula: random numbers. | [Ver](https://youtu.be/4OOF_FTrZ3w) | `MATLAB/Frank.m` | Disponible |
+| Random numbers following a multivariate normal distribution. | [Ver](https://youtu.be/cphvhtkpKoc) | `MATLAB/mvnormalmovie.m` | Disponible |
+| Histogram of a normal variable X. | [Ver](https://youtu.be/P1Ky6-a8DE0) | `MATLAB/normal.m` | Disponible |
+| 1000 step version of four Wiener process. | [Ver](https://youtu.be/X-VRWeqG_I8) | `MATLAB/Wiener.m` | Disponible |
+| 3D histogram of two independent normal variables. | [Ver](https://youtu.be/5iv5Zksf_zo) | `MATLAB/3dhist.m` | Disponible |
+| US efficient frontier: 5 industry portfolios. | [Ver](https://youtu.be/Fq4UlUCneyI) | `MATLAB/eff5ind.m` | Disponible |
+| US efficient frontiers: 5 and 12 industry portfolios. | [Ver](https://youtu.be/_GnJRviyYJI) | `MATLAB/eff512ind.m` | Disponible |
+| US minimum variance portfolio composition: 5 industry portfolios. | [Ver](https://youtu.be/paH1-bDPsA4) | `MATLAB/weights5ind.m` | Disponible |
+| US minimum variance portfolio composition: 10 industry portfolios. | [Ver](https://youtu.be/DyjQbKm-NdE) | `MATLAB/weights10ind.m` | Disponible |
