@@ -60,17 +60,6 @@ Este repositorio organiza materiales de apoyo para los videos del canal:
 - Evaluación de proyectos.
 - Mercados financieros: acciones, bonos y tasas.
 
-## Shorts
-
-- La paradoja de Parrondo en finanzas.
-- El sistema financiero.
-- Correlación y causalidad.
-- Contabilidad.
-- Finanzas.
-- Costo en contabilidad, finanzas y economía.
-- Ventas en corto.
-- La paradoja del rendimiento máximo.
-
 ## Visualizaciones, códigos en MATLAB (`MATLAB/`)
 
 ### Contenido disponible
@@ -88,3 +77,14 @@ Este repositorio organiza materiales de apoyo para los videos del canal:
 | US efficient frontiers: 5 and 12 industry portfolios. | [Ver](https://youtu.be/_GnJRviyYJI) | `MATLAB/eff512ind.m` | Disponible |
 | US minimum variance portfolio composition: 5 industry portfolios. | [Ver](https://youtu.be/paH1-bDPsA4) | `MATLAB/weights5ind.m` | Disponible |
 | US minimum variance portfolio composition: 10 industry portfolios. | [Ver](https://youtu.be/DyjQbKm-NdE) | `MATLAB/weights10ind.m` | Disponible |
+
+## Shorts
+
+- La paradoja de Parrondo en finanzas.
+- El sistema financiero.
+- Correlación y causalidad.
+- Contabilidad.
+- Finanzas.
+- Costo en contabilidad, finanzas y economía.
+- Ventas en corto.
+- La paradoja del rendimiento máximo.
