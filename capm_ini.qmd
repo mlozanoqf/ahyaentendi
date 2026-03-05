@@ -1,6 +1,6 @@
 ﻿---
-title: "\\textbf{CAPM desde cero.}"
-subtitle: "Intuición económica antes del enfoque académico y aplicado"
+title: "\\textbf{CAPM.}"
+subtitle: "Intuición financiera"
 author: "Dr. Martín Lozano \\texttt{https://mlozanoqf.github.io/}"
 date: ""
 format:
@@ -56,7 +56,7 @@ cat("\\end{center}\n", sep = "")
 library(knitr)
 
 tabla <- matrix(
-  c("$\\times$", "$\\times$", "$\\checkmark$",
+  c("$\\times$", "$\\checkmark$", "$\\times$",
     "$\\times$", "$\\checkmark$", "$\\times$",
     "$\\times$", "$\\checkmark$", "$\\times$"),
   nrow = 3, byrow = TRUE
@@ -74,7 +74,7 @@ kable(tabla, escape = FALSE, align = c("c","c","c"))
 
 La decisión financiera central es comparar alternativas con distinto nivel de riesgo.
 
-Si una inversión ofrece más rendimiento que otra, la pregunta correcta no es solo “cuánto rinde”, sino “qué riesgo exige asumir para obtener ese rendimiento”.
+Si una inversión ofrece más rendimiento que otra, no basta con mirar cuánto rinde: también importa qué nivel de riesgo de mercado está asociado con ese rendimiento adicional.
 
 CAPM propone una regla para esa comparación: relacionar rendimiento esperado y exposición al riesgo de mercado.
 
@@ -96,6 +96,18 @@ Esta ecuación resume tres ideas que se estudiarán por separado:
 
 \newpage
 
+# Una analogía salarial para leer CAPM.
+
+No enfrenta el mismo riesgo personal alguien que trabaja en una oficina que alguien que trabaja en una plataforma petrolera. En la plataforma, el riesgo para la integridad física, de accidentes graves e incluso fatales, es mayor; en la oficina, ese riesgo suele ser más bajo.
+
+Por eso, además del sueldo base, suele existir una prima salarial por exposición a ese riesgo laboral.
+
+Aun así, puede haber diferencias salariales puntuales que no se explican ni por el sueldo base ni por esa prima de riesgo: por ejemplo, bonos extraordinarios, ajustes temporales o condiciones específicas del periodo.
+
+CAPM aplica una lógica parecida: el rendimiento esperado de un activo puede separarse en un componente base y una prima por riesgo sistemático. En esa lectura, **beta** mide la exposición al riesgo de mercado, **alpha** recoge la parte del rendimiento que no queda explicada por esa exposición sistemática, y **epsilon** representa la variación puntual no explicada ni por el componente base ni por la exposición al riesgo.
+
+\newpage
+
 # **Beta**: exposición al mercado.
 
 En la ecuación,
@@ -107,7 +119,7 @@ $$
 
 Por eso beta permite ordenar activos por sensibilidad sistemática: menor sensibilidad, sensibilidad similar, o mayor sensibilidad que el mercado.
 
-En términos de decisión, beta es la pieza que conecta riesgo de mercado con rendimiento requerido.
+En términos de decisión, beta conecta el riesgo sistemático con el rendimiento que un inversionista suele exigir.
 
 \newpage
 
@@ -133,11 +145,11 @@ $$
 r_{i,t}=\alpha_i+\beta_i\,r_{M,t}+\boldsymbol{\varepsilon_{i,t}}
 $$
 
-**Epsilon** recoge la parte del movimiento del activo que no explica el componente de mercado en ese periodo.
+**Epsilon** representa la parte del rendimiento que no queda explicada por el factor de mercado en ese periodo.
 
 Una fracción importante de esa variación es específica del activo o del periodo. En carteras diversificadas, ese componente tiende a compensarse parcialmente entre activos.
 
-Esta distinción es clave para CAPM: no todo riesgo tiene el mismo papel en el rendimiento requerido.
+Esta distinción es clave para CAPM: no todo riesgo se remunera de la misma forma.
 
 \newpage
 
@@ -149,15 +161,15 @@ CAPM organiza el análisis en tres niveles:
 - evaluar desempeño ajustado por mercado (**alpha**),
 - separar variación residual (**epsilon**).
 
-Con esa estructura se pueden comparar activos, discutir rendimiento requerido del equity y evaluar desempeño con un marco consistente.
+Este marco se usa para analizar acciones individuales, ETFs, fondos activos y carteras, siempre contra un benchmark de mercado definido.
 
-El valor principal no es “adivinar” rendimientos futuros, sino mejorar la calidad de la comparación financiera.
+Con esa estructura se puede comparar instrumentos bajo el mismo criterio riesgo-rendimiento, discutir rendimiento requerido del equity y evaluar desempeño de forma consistente.
 
 \newpage
 
 # Alcance y límites.
 
-CAPM es una aproximación útil, no una descripción completa de todos los riesgos.
+CAPM es una aproximación útil para estimar rendimiento requerido, estructurar comparaciones entre activos y evaluar desempeño ajustado por riesgo sistemático.
 
 Sus resultados son condicionales al periodo, frecuencia, benchmark y supuestos del análisis.
 
@@ -169,7 +181,7 @@ Esta lectura evita dos errores comunes: sobreconfiar en el modelo o descartarlo 
 
 # CAPM en contexto.
 
-En finanzas existen modelos multifactoriales que amplían la explicación del rendimiento.
+En finanzas existen modelos multifactoriales que amplían la explicación conjunta del rendimiento y de las distintas fuentes de riesgo.
 
 Aun así, CAPM conserva valor formativo porque establece la lógica central: qué parte del riesgo se conecta con rendimiento requerido y cómo separar exposición sistemática de componente residual.
 
@@ -196,4 +208,5 @@ CAPM puede resumirse como una herramienta de organización conceptual para decis
 La ecuación en exceso permite distinguir con claridad tres piezas: **beta** (exposición sistemática), **alpha** (componente no explicado por mercado) y **epsilon** (variación residual).
 
 Con esta base, los enfoques académico y aplicado se entienden como dos extensiones complementarias de una misma lógica financiera.
+
 
