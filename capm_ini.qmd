@@ -1,0 +1,199 @@
+﻿---
+title: "\\textbf{CAPM desde cero.}"
+subtitle: "Intuición económica antes del enfoque académico y aplicado"
+author: "Dr. Martín Lozano \\texttt{https://mlozanoqf.github.io/}"
+date: ""
+format:
+  pdf:
+    pdf-engine: xelatex
+    number-sections: true
+    highlight-style: tango
+header-includes:
+  - \usepackage{xcolor}
+  - \usepackage{fvextra}
+  - |
+      \DefineVerbatimEnvironment{Highlighting}{Verbatim}{
+        breaklines,
+        commandchars=\\\{\},
+        numbers=left,
+        numbersep=8pt,
+        fontsize=\small,
+        firstnumber=1,
+        xleftmargin=1.5em,
+        frame=none
+      }
+      \renewcommand{\theFancyVerbLine}{\textcolor{black}{\bfseries\small\arabic{FancyVerbLine}}}
+  - \usepackage{amssymb}
+  - \usepackage{amsmath}
+---
+
+```{r}
+#| echo: false
+#| results: asis
+
+meses <- c("enero","febrero","marzo","abril","mayo","junio",
+           "julio","agosto","septiembre","octubre","noviembre","diciembre")
+
+ahora <- Sys.time()
+mes <- meses[as.integer(format(ahora, "%m"))]
+ampm <- ifelse(format(ahora, "%p") == "AM", "a.m.", "p.m.")
+fecha_txt <- sprintf("%s de %s de %s, %s %s",
+                     format(ahora, "%d"),
+                     mes,
+                     format(ahora, "%Y"),
+                     format(ahora, "%I:%M"),
+                     ampm)
+
+cat("\\begin{center}\n", sep = "")
+cat(fecha_txt, "\n", sep = "")
+cat("\\end{center}\n", sep = "")
+```
+
+```{r}
+#| echo: false
+#| message: false
+#| warning: false
+library(knitr)
+
+tabla <- matrix(
+  c("$\\times$", "$\\times$", "$\\checkmark$",
+    "$\\times$", "$\\checkmark$", "$\\times$",
+    "$\\times$", "$\\checkmark$", "$\\times$"),
+  nrow = 3, byrow = TRUE
+)
+colnames(tabla) <- c("Fundamental", "Intermedio", "Especializado")
+rownames(tabla) <- c("Finanzas", "Estadística", "R")
+
+kable(tabla, escape = FALSE, align = c("c","c","c"))
+```
+
+\newpage
+\Large
+
+# El problema que CAPM intenta resolver.
+
+La decisión financiera central es comparar alternativas con distinto nivel de riesgo.
+
+Si una inversión ofrece más rendimiento que otra, la pregunta correcta no es solo “cuánto rinde”, sino “qué riesgo exige asumir para obtener ese rendimiento”.
+
+CAPM propone una regla para esa comparación: relacionar rendimiento esperado y exposición al riesgo de mercado.
+
+\newpage
+
+# Ecuación base del modelo.
+
+En esta introducción usaremos la versión en exceso del CAPM:
+
+$$
+r_{i,t}=\alpha_i+\beta_i\,r_{M,t}+\varepsilon_{i,t}
+$$
+
+Esta ecuación resume tres ideas que se estudiarán por separado:
+
+- **beta**: exposición al mercado.
+- **alpha**: componente promedio no explicado por mercado.
+- **epsilon**: variación residual de cada periodo.
+
+\newpage
+
+# **Beta**: exposición al mercado.
+
+En la ecuación,
+$$
+r_{i,t}=\alpha_i+\boldsymbol{\beta_i}\,r_{M,t}+\varepsilon_{i,t}
+$$
+
+**Beta** indica cuánto cambia, en promedio, el rendimiento del activo cuando cambia el rendimiento del mercado.
+
+Por eso beta permite ordenar activos por sensibilidad sistemática: menor sensibilidad, sensibilidad similar, o mayor sensibilidad que el mercado.
+
+En términos de decisión, beta es la pieza que conecta riesgo de mercado con rendimiento requerido.
+
+\newpage
+
+# **Alpha**: componente no explicado por mercado.
+
+En la ecuación,
+$$
+r_{i,t}=\boldsymbol{\alpha_i}+\beta_i\,r_{M,t}+\varepsilon_{i,t}
+$$
+
+**Alpha** representa el componente promedio del rendimiento que no queda explicado únicamente por la exposición al mercado.
+
+Un alpha positivo sugiere que, en la muestra analizada, el desempeño fue mayor al que se justificaría solo por beta. Un alpha negativo sugiere lo contrario.
+
+La lectura correcta es condicional: alpha depende de la ventana temporal, del benchmark y del diseño empírico.
+
+\newpage
+
+# **Epsilon**: variación residual y diversificación.
+
+En la ecuación,
+$$
+r_{i,t}=\alpha_i+\beta_i\,r_{M,t}+\boldsymbol{\varepsilon_{i,t}}
+$$
+
+**Epsilon** recoge la parte del movimiento del activo que no explica el componente de mercado en ese periodo.
+
+Una fracción importante de esa variación es específica del activo o del periodo. En carteras diversificadas, ese componente tiende a compensarse parcialmente entre activos.
+
+Esta distinción es clave para CAPM: no todo riesgo tiene el mismo papel en el rendimiento requerido.
+
+\newpage
+
+# Qué hace CAPM en la práctica.
+
+CAPM organiza el análisis en tres niveles:
+
+- medir exposición al mercado (**beta**),
+- evaluar desempeño ajustado por mercado (**alpha**),
+- separar variación residual (**epsilon**).
+
+Con esa estructura se pueden comparar activos, discutir rendimiento requerido del equity y evaluar desempeño con un marco consistente.
+
+El valor principal no es “adivinar” rendimientos futuros, sino mejorar la calidad de la comparación financiera.
+
+\newpage
+
+# Alcance y límites.
+
+CAPM es una aproximación útil, no una descripción completa de todos los riesgos.
+
+Sus resultados son condicionales al periodo, frecuencia, benchmark y supuestos del análisis.
+
+Por eso debe leerse como modelo base: suficientemente simple para ordenar decisiones, pero no definitivo para toda situación.
+
+Esta lectura evita dos errores comunes: sobreconfiar en el modelo o descartarlo por no ser perfecto.
+
+\newpage
+
+# CAPM en contexto.
+
+En finanzas existen modelos multifactoriales que amplían la explicación del rendimiento.
+
+Aun así, CAPM conserva valor formativo porque establece la lógica central: qué parte del riesgo se conecta con rendimiento requerido y cómo separar exposición sistemática de componente residual.
+
+Por eso CAPM funciona como punto de partida natural antes de entrar a extensiones más complejas.
+
+\newpage
+
+# Puente a los dos videos siguientes.
+
+Este documento dejó establecida la intuición y el lenguaje base del modelo.
+
+En el video académico, el foco será la validación econométrica: qué tan bien se sostiene esta lógica con evidencia e inferencia estadística.
+
+En el video práctico, el foco será el uso operativo: cómo convertir **beta**, **alpha** y rendimiento requerido en decisiones concretas de análisis financiero.
+
+La secuencia es deliberada: primero lógica, luego validación y finalmente aplicación.
+
+\newpage
+
+# Conclusión.
+
+CAPM puede resumirse como una herramienta de organización conceptual para decisiones bajo riesgo.
+
+La ecuación en exceso permite distinguir con claridad tres piezas: **beta** (exposición sistemática), **alpha** (componente no explicado por mercado) y **epsilon** (variación residual).
+
+Con esta base, los enfoques académico y aplicado se entienden como dos extensiones complementarias de una misma lógica financiera.
+

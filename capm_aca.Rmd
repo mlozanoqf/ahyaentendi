@@ -1,4 +1,4 @@
----
+﻿---
 title: "\\textbf{CAPM como modelo de valuación.}"
 subtitle: "Estimación y evidencia empírica."
 author: "Dr. Martín Lozano \\texttt{https://mlozanoqf.github.io/}"
@@ -53,9 +53,9 @@ knitr::opts_chunk$set(
   echo = TRUE,
   message = FALSE,
   warning = FALSE,
-  class.source = "numberLines",   # activa numeración en todos los chunks con echo=TRUE
-  Sys.setlocale("LC_TIME", "es_ES.UTF-8")
+  class.source = "numberLines"   # activa numeración en todos los chunks con echo=TRUE
 )
+Sys.setlocale("LC_TIME", "es_ES.UTF-8")
 ```
 
 \newpage
@@ -310,11 +310,27 @@ ggplot(beta_ret, aes(x = beta, y = mean_total, label = portfolio)) +
   $\bar r_p = \gamma_0 + \gamma_1 \hat\beta_p + u_p$, donde $\bar r_p$ es el promedio temporal de $r_{p,t}$.
   \item Interpretación: $\gamma_1$ es el precio del riesgo de mercado, la compensación promedio por una unidad adicional de $\beta$, y $\gamma_0$ es el intercepto de la relación riesgo--retorno.
   \item Preguntas: ¿existe una relación positiva riesgo--retorno $\gamma_1>0$? y ¿es el intercepto compatible con cero en retornos en exceso $\gamma_0=0$?
-  \item Reportamos OLS y un ajuste estilo Shanken para reflejar que $\hat\beta_p$ es un regresor estimado, lo que tiende a inflar los errores estándar respecto al caso con $\beta$ observada.
+  \item Reportamos OLS y corrección de Shanken (1992) para reflejar formalmente que $\hat\beta_p$ es un regresor estimado. Esta corrección ajusta la matriz de varianzas-covarianzas de la segunda etapa incorporando error de medición en betas y varianza del factor de mercado.
   \item Muestra en esta etapa: la regresión en sección cruzada usa $N=10$ observaciones (una por cartera).
 \end{itemize}
 
+De forma compacta, la corrección de Shanken puede escribirse para la varianza de $\hat\gamma=(\hat\gamma_0,\hat\gamma_1)^\top$ como:
 
+\[
+\widehat{\mathrm{Var}}_{S}(\hat\gamma)=
+\frac{1}{T}\left[
+(1+c)\,A\widehat{\Sigma}_{e}A^\top
++
+\begin{pmatrix}
+0 & 0 \\
+0 & \hat{\sigma}_f^2
+\end{pmatrix}
+\right],\quad
+A=(X^\top X)^{-1}X^\top,\quad
+c=\frac{\hat{\lambda}^2}{\hat{\sigma}_f^2},
+\]
+donde $\hat\gamma=(\hat\gamma_0,\hat\gamma_1)^\top$ y $\hat{\lambda}=\hat\gamma_1$.
+El término $(1+c)\,A\widehat{\Sigma}_{e}A^\top$ reescala la parte usual de segunda etapa al reconocer que las betas usadas como regresores son estimadas (no observadas). El término adicional con $\hat{\sigma}_f^2$ incorpora la variabilidad del factor de mercado en la pendiente de la regresión cruzada. En la práctica, esto suele aumentar errores estándar frente a OLS ingenuo y vuelve más conservadora la inferencia sobre $\gamma_1$.
 
 \newpage
 
@@ -331,24 +347,59 @@ cross_df <- capm_ts |>
 cs_reg  <- lm(mean_excess ~ beta, data = cross_df)
 cs_tidy <- tidy(cs_reg)  # OLS sin corrección
 
-# Shanken (corrige que beta es estimado)
-sigma_f2 <- var(capm_data$mkt_excess, na.rm = TRUE)
-mu_f     <- mean(capm_data$mkt_excess, na.rm = TRUE)
-shanken_fac <- 1 + (mu_f^2 / sigma_f2)
+# Shanken (1992): corrección formal para beta estimada en 1a etapa
+# 1) Residuos de primera etapa por cartera para estimar Sigma_e (N x N)
+resid_wide <- capm_data |>
+  group_by(portfolio) |>
+  group_modify(~ {
+    fit <- lm(excess_ret ~ mkt_excess, data = .x)
+    tibble(date = .x$date, resid = residuals(fit))
+  }) |>
+  ungroup() |>
+  select(date, portfolio, resid) |>
+  pivot_wider(names_from = portfolio, values_from = resid) |>
+  arrange(date)
 
-vcov_shanken <- vcov(cs_reg) * shanken_fac
-cs_shanken <- coeftest(cs_reg, vcov. = vcov_shanken) |>
-tidy()  # estimate, std.error, statistic, p.value
+E_mat <- as.matrix(select(resid_wide, -date))
+Sigma_e <- stats::cov(E_mat, use = "pairwise.complete.obs")
+
+# 2) Matriz de diseño de sección cruzada X = [1, beta]
+X <- model.matrix(~ beta, data = cross_df)
+T_obs <- nrow(resid_wide)
+
+# 3) Término c = lambda' Sigma_f^{-1} lambda (K=1)
+sigma_f2 <- var(capm_data$mkt_excess, na.rm = TRUE)
+lambda_hat <- unname(coef(cs_reg)[["beta"]])
+c_sh <- as.numeric((lambda_hat^2) / sigma_f2)
+
+# 4) Covarianza Shanken para [gamma0, gamma1]'
+A <- solve(t(X) %*% X) %*% t(X)
+base_part <- A %*% Sigma_e %*% t(A)
+add_part <- matrix(c(0, 0, 0, sigma_f2), nrow = 2, byrow = TRUE)
+vcov_shanken <- (1 / T_obs) * ((1 + c_sh) * base_part + add_part)
+
+coef_cs <- coef(cs_reg)
+se_sh <- sqrt(diag(vcov_shanken))
+t_sh <- coef_cs / se_sh
+p_sh <- 2 * pt(-abs(t_sh), df = T_obs - 1)
+
+cs_shanken <- tibble(
+  term = names(coef_cs),
+  estimate = as.numeric(coef_cs),
+  std.error = as.numeric(se_sh),
+  statistic = as.numeric(t_sh),
+  p.value = as.numeric(p_sh)
+)
 
 cs_tidy    # sin corrección
-cs_shanken # con SE Shanken
+cs_shanken # con corrección Shanken (1992)
 ```
 \newpage
 
 # Resultados. Sección cruzada de promedios (sin y con Shanken).
 
 \begin{itemize}
-\item El precio del riesgo $\gamma_1$ es positivo en la muestra, con $\hat\gamma_1 = `r sprintf('%.2f', coef(cs_reg)[['beta']])`\%$ mensual. La inferencia arroja $p = `r sprintf('%.3f', cs_tidy$p.value[cs_tidy$term == 'beta'])`$ en OLS y $p = `r sprintf('%.3f', cs_shanken$p.value[cs_shanken$term == 'beta'])`$ con ajuste estilo Shanken. Con estos valores, la evidencia para $\gamma_1$ es `r ifelse(cs_shanken$p.value[cs_shanken$term == "beta"] < 0.05, "significativa al 5\\%", ifelse(cs_shanken$p.value[cs_shanken$term == "beta"] < 0.10, "significativa al 10\\% pero no al 5\\%", "no significativa al 10\\%"))`.
+\item El precio del riesgo $\gamma_1$ es positivo en la muestra, con $\hat\gamma_1 = `r sprintf('%.2f', coef(cs_reg)[['beta']])`\%$ mensual. La inferencia arroja $p = `r sprintf('%.3f', cs_tidy$p.value[cs_tidy$term == 'beta'])`$ en OLS y $p = `r sprintf('%.3f', cs_shanken$p.value[cs_shanken$term == 'beta'])`$ con corrección de Shanken (1992). Con estos valores, la evidencia para $\gamma_1$ es `r ifelse(cs_shanken$p.value[cs_shanken$term == "beta"] < 0.05, "significativa al 5\\%", ifelse(cs_shanken$p.value[cs_shanken$term == "beta"] < 0.10, "significativa al 10\\% pero no al 5\\%", "no significativa al 10\\%"))`.
 \item El intercepto $\gamma_0$ no difiere significativamente de cero, consistente con rendimientos en exceso correctamente centrados.
 \item Este resultado anticipa lo que veremos con Fama-MacBeth: en lugar de usar solo promedios, estimaremos el precio del riesgo mes a mes para evaluar su variación temporal y realizar inferencia con errores estándar adecuados.
 \end{itemize}
@@ -380,7 +431,7 @@ ggplot(beta_ret, aes(x = beta, y = mean_total, label = portfolio)) +
 # Fama-MacBeth (sin y con Newey-West).
 
 \begin{itemize}
-\item Fama-MacBeth: para cada mes estimamos $r_{p,t}=\lambda_{0,t}+\lambda_{1,t}\hat\beta_p+\eta_{p,t}$, usando $\hat\beta_p$ fijas la regresión de serie de tiempo.
+\item Fama-MacBeth: para cada mes estimamos $r_{p,t}=\lambda_{0,t}+\lambda_{1,t}\hat\beta_p+\eta_{p,t}$, usando $\hat\beta_p$ fijas de la regresión de serie de tiempo.
 \item Interesa el precio del riesgo $\lambda_{1,t}$ y su promedio $\bar\lambda_1$. Para la inferencia sobre $\bar\lambda_1$, comparamos errores estándar básicos con HAC (Newey-West) sobre la serie temporal de $\hat\lambda_{1,t}$ (y análogamente para $\hat\lambda_{0,t}$).
 \item Valor agregado frente a la sección cruzada: en lugar de estimar un solo $\gamma_1$ usando medias, Fama-MacBeth estima $\lambda_{1,t}$ mes a mes. Esto permite estudiar la variación temporal del precio del riesgo y construir inferencia a partir de la dispersión temporal de $\hat\lambda_{1,t}$, con correcciones HAC cuando hay dependencia en el tiempo.
 \item Como el punto $Mkt\!-\!RF$ es solo una referencia visual y no entra en la regresión cruzada, la recta no está obligada a pasar exactamente por él.
@@ -560,3 +611,8 @@ resumen_final <- tibble::tibble(
 
 knitr::kable(resumen_final, align = "l", escape = FALSE)
 ```
+
+
+
+
+

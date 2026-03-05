@@ -1,4 +1,4 @@
----
+﻿---
 title: "\\textbf{CAPM aplicado.}"
 subtitle: "Beta, costo de capital y alpha."
 author: "Dr. Martín Lozano \\texttt{https://mlozanoqf.github.io/}"
@@ -53,9 +53,9 @@ knitr::opts_chunk$set(
   echo = TRUE,
   message = FALSE,
   warning = FALSE,
-  class.source = "numberLines",   # activa numeración en todos los chunks con echo=TRUE
-  Sys.setlocale("LC_TIME", "es_ES.UTF-8")
+  class.source = "numberLines"   # activa numeración en todos los chunks con echo=TRUE
 )
+Sys.setlocale("LC_TIME", "es_ES.UTF-8")
 
 fmt2 <- function(x) sprintf("%.2f", x)
 fmt3 <- function(x) sprintf("%.3f", x)
@@ -113,7 +113,7 @@ library(ggplot2)
 
 # Datos 1/3.
 
-```{r data_download_prepare, cache=TRUE}
+```{r data_download_prepare}
 # ----------------------------
 # Parámetros de muestra
 # ----------------------------
@@ -285,7 +285,7 @@ common_dates <- sort(common_dates)
 
 # Verificación de datos 1/2.
 
-```{r data_master_build, cache=TRUE}
+```{r data_master_build}
 # Diagnóstico: aquí common_dates debe imprimirse como fechas, no números
 range(mkt_rf$date); nrow(mkt_rf)
 range(common_dates); length(common_dates)
@@ -1091,3 +1091,6 @@ $\widehat{\beta}_{FDGRX}=`r fmt2(fdgrx_ols$estimate[fdgrx_ols$term == "beta"])`$
 
 \item Criterio de prudencia: las estimaciones son evidencia de muestra (ex post), no garantías de desempeño futuro. Por eso, la interpretación correcta es condicional y debe acompañarse de juicio económico.
 \end{itemize}
+
+
+
